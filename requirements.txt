@@ -1,0 +1,3 @@
+requests        # collector: HTTP polling of the GBFS feed
+pandas          # analysis (Phase 3+)
+pytest          # tests

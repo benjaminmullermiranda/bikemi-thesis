@@ -1,0 +1,17 @@
+# Research data: NEVER in git (multi-GB asset; backed up separately)
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Environment / secrets
+.env
+.DS_Store
+data/metadata.csv
