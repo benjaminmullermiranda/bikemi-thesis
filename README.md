@@ -49,4 +49,4 @@ python collector/integrity_report.py  # run daily: collection health report
 - [ ] Agent comparison (24 scenarios)
 
 ## Author
-Benjamin [Surname] — Università degli Studi di Cassino e del Lazio Meridionale.
+Benjamin Muller — Università degli Studi di Cassino e del Lazio Meridionale.
