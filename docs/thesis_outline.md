@@ -66,7 +66,7 @@ An anomaly census of a production mobility feed; a quantified propagation analys
 
 ---
 
-# PART B — Internal working annex (not for submission)
+# PART B — Internal working annex 
 
 ## B1. Collector architecture
 
