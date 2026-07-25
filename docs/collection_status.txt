@@ -1,0 +1,14 @@
+﻿Period        : 2026-07-24 09:46:06 -> 2026-07-25 14:46:30 UTC  (29.0 h)
+COVERAGE      : 15.1%   (259 polls logged / ~1712 expected)
+Success rate  : 96.1%   (249 HTTP 200 of 259 logged)
+Errors logged : 10
+Gaps > 2 min  : 7  |  time lost in gaps: 24.7 h
+    2026-07-24 10:29:58 UTC  ->  341 s (6 min)
+    2026-07-24 11:14:38 UTC  ->  127 s (2 min)
+    2026-07-24 11:16:45 UTC  ->  806 s (13 min)
+    2026-07-24 11:35:11 UTC  ->  3514 s (59 min)
+    2026-07-24 14:27:55 UTC  ->  1705 s (28 min)
+    2026-07-24 14:56:20 UTC  ->  3381 s (56 min)
+    2026-07-24 16:02:54 UTC  ->  79203 s (1320 min)
+Stations      : min=320  max=320
+Longest identical-payload streak: 1
