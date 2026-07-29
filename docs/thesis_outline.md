@@ -1,74 +1,72 @@
-# Thesis Outline (v4)
-
-**Data Quality and Agentic AI in Operational Decision Support: A Bike-Sharing Case Study**
-Benjamin [Surname] · B.Sc. Business with Data Science · Supervisor: Prof. Ciro Russo
-
----
-
-# PART A — Outline for submission
+# Data Quality and Agentic AI in Operational Decision Support: A Bike-Sharing Case Study
+Benjamin Antonio Muller Miranda · B.Sc. Business with Data Science · Supervisor: Prof. Ciro Russo
 
 ## 1. Research question and objectives
 
 **Central question.** How does data-quality degradation in a live bike-sharing feed propagate through an operational decision pipeline — raw data → short-horizon forecast → dispatch decision → cost — and how much of the propagated harm can be recovered *without improving the forecasting model itself*?
 
-Data quality, not predictive accuracy, is the independent variable: the forecasting model is deliberately simple and **held fixed**, experiments vary only the input data, and corruption is applied at **serving time only** (training-time corruption out of scope).
+Data quality, not predictive accuracy, is the independent variable: the forecasting model is simple and frozen, experiments vary only input data, and corruption is applied at serving time only (training-time corruption out of scope).
 
 **Primary objective.** Quantify each link of that chain per anomaly class and intensity, identifying where the loss concentrates.
 
-**Secondary objectives.** SO1 — characterise the anomalies observed in the live feed over a fixed 5-week window. SO2 — measure how much degradation a rule-based safeguard layer recovers. SO3 — as a final, bounded extension, test whether quality signals change an LLM agent's behaviour on a fixed, objectively scored scenario set.
+**Secondary objectives.** SO1 — characterise anomalies observed in the live feed over a fixed 5-week window. SO2 — measure how much degradation a rule-based safeguard layer recovers. SO3 — as a final, bounded extension, test whether quality signals change an LLM agent's behaviour on a fixed, objectively scored scenario set (§8).
 
-**Scope triage.** If time runs short: cut SO3 first (demoted to a qualitative demo), then collapse the σ-sweep to its mid value, then reduce intensities from 4 to 2; SO1 and the propagation analysis are never cut.
+**Scope triage.** If time runs short, SO3 is cut first, then the σ-sweep collapses to its mid value; SO1 and the propagation analysis are never cut.
 
-## 2. Testable hypotheses
+## 2. Positioning (preliminary)
 
-- **H1 (Occurrence).** Anomalies occur at measurable, non-negligible rates, unevenly across stations and hours. *Test:* negative-binomial GLM with station and hour effects (rare, overdispersed counts invalidate χ²); unevenness via likelihood-ratio test.
+Gammelli et al. (2022, *Transp. Res. Part C* 138:103571) show that predictive and prescriptive performance diverge in bike-sharing inventory decisions. Mohammed et al. (2025, *Information Systems* 132:102549; preprint Budach et al., arXiv:2207.14529) perturb data-quality dimensions systematically but stop at model metrics. Neither continues into an explicit cost function under a frozen decision rule — the gap this thesis targets. SmartFlow (arXiv:2601.00868) and RideAgent (arXiv:2505.06608) already place a grounded LLM downstream of an optimiser in fleet operations, but neither evaluates agent behaviour under *degraded* input, which is where SO3 is scoped.
+
+## 3. Testable hypotheses
+
+- **H1 (Occurrence).** Anomalies occur at measurable, non-negligible rates, unevenly across stations and hours. *Test:* negative-binomial GLM (station + hour effects; rare, overdispersed counts invalidate χ²); likelihood-ratio test for unevenness.
 - **H2 (Non-linear, class-dependent propagation).** Decision-flip rate and Δcost grow non-linearly with intensity, differing across classes even at similar mean forecast-error degradation. *Test:* two-way model on Δcost, class × intensity interaction; permutation inference if diagnostics fail at n = 5.
-- **H3 (Bounded recoverability, classes 1–5).** The safeguard layer detects most injected anomalies in classes 1–5 and recovers a substantial share of their Δcost. *Test:* bootstrap percentile CI on paired pre/post-safeguard Δcost per class (primary); Wilcoxon signed-rank secondary — at n = 5 its minimum two-sided p is 0.0625, unable to reach α = 0.05, hence CI-first. Class 6 is excluded by construction (~0% recovery is definitional) and reported as the **unrecoverable floor**.
-- **H4 (Agent quality-awareness, descriptive).** The quality-aware agent shows fewer unwarranted-confidence responses on corrupted-and-flagged scenarios, without increased inappropriate abstention on clean ones. *Effect sizes with exact binomial CIs only; no significance test is claimed* (24 pairs detect only very large effects). Class 6 excluded (no flag exists; configurations identical).
+- **H3 (Bounded recoverability, classes 1–5).** The safeguard layer detects most injected anomalies in classes 1–5 and recovers a substantial share of their Δcost. *Test:* bootstrap percentile CI on paired pre/post-safeguard Δcost per class (primary); Wilcoxon signed-rank secondary — at n = 5 its minimum two-sided p is 0.0625, unable to reach α = 0.05, hence CI-first. Class 6 excluded by construction (~0% recovery is definitional) and reported as the **unrecoverable floor**.
+- **H4 (Agent quality-awareness, descriptive).** The quality-aware agent shows fewer unwarranted-confidence responses on corrupted-and-flagged scenarios, without increased inappropriate abstention on clean ones. Effect sizes with exact binomial CIs only; no significance test claimed (24 pairs detect only very large effects).
 
-*Statistical honesty clause (H1–H4).* Power is limited by design; effect sizes with confidence intervals are the primary evidence, significance tests (H1–H3, Holm-corrected, α = 0.05) supporting.
+*Power note (H1–H4).* Power is limited by design; effect sizes with confidence intervals are the primary evidence; significance tests (H1–H2, Holm-corrected, α = 0.05) are supporting.
 
-## 3. Case study and data collection
+## 4. Case study, collection and injection substrate
 
-BikeMi Milan (~300 docked stations), official public GBFS feed (`station_information`, `station_status`). **Poll interval 60 s** vs. the source's ~10 s refresh: anomalies ≥ ~2 min are captured, a 10-min interval would alias the short transients under study, and sub-2-min transients are under-observed. Every response is archived immutably with acquisition metadata (timestamp, HTTP status, latency, payload size/hash, feed `last_updated`, station count): **feed staleness stays distinguishable from collection failure**. **Fixed window:** 5 weeks, snapshot date frozen in advance; same-platform companion feeds (Oslo, Bergen, Trondheim) are collected cheaply but not analysed here. **Licence:** NLOD 2.0 (attribution) per BikeMi's open-data page, `Client-Identifier` header required; page archived, attribution string quoted in the appendix. A published historical station-status dataset is the additional clean substrate for injection.
+BikeMi Milan (320 docked stations observed), public GBFS feed, NLOD 2.0 licence, `Client-Identifier` header required; licence page archived, attribution quoted in the appendix. Poll interval 60 s (source refresh ~10 s): captures anomalies ≥ ~2 min; sub-2-min transients remain under-observed. Every response is archived immutably with acquisition metadata (timestamp, HTTP status, latency, payload size/hash, feed `last_updated`, station count), so **feed staleness stays distinguishable from collection failure**. Collection window 24 July – 28 August 2026, snapshot date frozen in advance; coverage (polls logged / expected) is reported alongside feed success rate, as the two measure different things.
 
-## 4. Anomaly taxonomy
+**Injection substrate: the project's own BikeMi collection**, not an external historical dataset — identical schema to the studied system (removing any cross-system transfer assumption), verified licence, and all fields the taxonomy requires. Since observed collection gaps are collector-side and correlated with machine state rather than random, the substrate is the **longest continuous high-coverage segment** of the window, not the full collection; excluded periods are reported. Cleanliness is pre-certified by passing the segment through the §6 validation layer, natural anomalies excluded and counted.
 
-| # | Class | DQ dimension | Cause | Feed-detectable? | Injection parameters |
+## 5. Anomaly taxonomy
+
+| # | Class | DQ dimension | Cause | Detectable? | Injection parameters |
 |---|---|---|---|---|---|
 | 1 | Station dropout | Completeness | Registry/backend churn | Yes — absence vs. registry | stations, duration |
-| 2 | Frozen counter | Accuracy/Timeliness | Stuck sensor/process | Partial — zero-variance in active hours; `last_reported` stall | station, duration |
-| 3 | Stale update | Timeliness | Pipeline delay/caching | Yes — now − `last_reported` | lag Δt, scope |
-| 4 | Capacity inconsistency | Consistency | Broken docks, config drift | Yes — bikes + docks vs. capacity | perturbation magnitude |
+| 2 | Frozen counter | Accuracy | Stuck sensor/process | Yes — zero variance in active hours | station, duration |
+| 3 | Stale feed | Timeliness | Pipeline delay/caching | Yes, **feed-level only**: now − `last_updated` and identical-payload streaks. Not per-station: `last_reported` was measured as a batch value, identical across all 320 stations in each of 765 snapshots, so per-station staleness is unobservable here | lag Δt, scope |
+| 4 | Count inconsistency | Consistency | Broken docks, config drift | Yes — bikes + docks vs. capacity; `num_bikes_available` vs. sum of `vehicle_types_available` | perturbation magnitude |
 | 5 | Implausible value jump | Validity | Transmission/parsing fault | Yes — max plausible flow per interval | magnitude, rate |
-| 6 | Silent misreporting (bike shown available, unusable) | Accuracy | Undetected defective bike | **No** — injection-only; k and share are unanchored sensitivity dimensions (no ground truth or per-bike proxy); dose–response *shape* reported over a wide sweep, operating point unknown | offset k, share of stations |
+| 6 | Silent misreporting (bike shown available, unusable) | Accuracy | Undetected defective bike | **No** — injection-only; k and share are unanchored sensitivity dimensions (no ground truth or per-bike proxy); dose–response shape reported over a wide sweep | offset k, share |
 
-**Injection design:** 6 classes × 4 intensities × **5 seeds**, applied at serving time to the clean substrate → per-class dose–response curves for forecast error, decision-flip rate, and Δcost.
+**Injection design:** 6 classes × 4 intensities × 5 seeds, at serving time on the pre-certified substrate → per-class dose–response curves for forecast error, decision-flip rate, and Δcost.
 
-## 5. Decision pipeline and decision rule
+**Leakage protocol.** Chronological splits only, never shuffled. The model is trained once on clean pre-injection data and frozen; injected-fault labels and corruption indicators are never features. Per NLOD §5–§6, all synthetic data is labelled as modified and never reported as observed BikeMi data.
 
-Pipeline: raw feed → validation/feature layer → forecast → decision rule → intervention list → cost. **Forecast (simple, fixed):** regularised logistic regression predicting P(critical at t+2h) per station — critical = ≤ 2 bikes or ≤ 2 free docks — from availability lags, hour/weekday, basic weather; gradient boosting only as a robustness check. **Decision rule:** dispatch iff P̂ ≥ τ; τ calibrated once on clean validation data, then **frozen** across all experiments so decision changes are attributable to data quality alone. Comparator: reactive policy (intervene once a critical state is observed).
+## 6. Decision pipeline and decision rule
 
-## 6. Cost model
+Pipeline: raw feed → validation/feature layer → forecast → decision rule → intervention list → cost. **Forecast (simple, frozen):** regularised logistic regression predicting P(critical at t+2h) per station from availability lags, hour/weekday, basic weather; gradient boosting only as a robustness check. **Critical state:** ≤ 2 bikes or ≤ 2 free docks on `num_bikes_available` (aggregate over bike / e-bike / e-bike-with-childseat); since the fleet is heterogeneous, a type-level definition is reported as a robustness variant, as are thresholds of 1 and 3. **Decision rule:** dispatch iff P̂ ≥ τ; τ calibrated once on clean validation data, then frozen across all experiments, so decision changes are attributable to data quality alone. Comparator: reactive policy (intervene once a critical state is observed).
 
-- **C_penalty** (demand side — *foregone revenue*, not operator cost) = Σ critical station-hours × C_miss, with **C_miss = expected failed pickups × (1 − σ) × revenue per ride** (pickup rate from departure rates in comparable non-empty periods; revenue from published BikeMi pricing); **σ (substitution share) swept {0.2, 0.5, 0.8} as illustrative bounds, not derived from ridership data**.
+## 7. Cost model
+
+- **C_penalty** (demand side — foregone revenue) = Σ critical station-hours × C_miss, with **C_miss = expected failed pickups × (1 − σ) × revenue per ride** (pickup rate from departure rates in comparable non-empty periods; revenue from published BikeMi pricing); **σ swept {0.2, 0.5, 0.8}**, illustrative bounds, not derived from ridership data.
 - **C_transit** (supply side — operator cost) = Σ preventive dispatches × C_dispatch (labour + vehicle time per stop).
 
-All parameters swept low/mid/high; the sum is the *economic cost of the policy under stated assumptions*, never operator P&L. Headline metrics: **decision-flip rate**, **Δcost** (per class × intensity), **recovery rate** (classes 1–5), **unrecoverable floor** (class 6).
+All parameters swept low/mid/high; the sum is the economic cost of the policy under stated assumptions, never operator P&L. Headline metrics: decision-flip rate, Δcost (per class × intensity), recovery rate (classes 1–5), unrecoverable floor (class 6).
 
-## 7. Agent comparison (final, limited part — hard-capped)
+## 8. Agent comparison (final, limited — hard-capped)
 
-Same tool-grounded agent, two configurations: **quality-blind** (raw values) vs. **quality-aware** (values + safeguard flags). **8 operator questions × 3 conditions (clean / corrupted / corrupted-and-flagged) = 24 scenarios, fixed in advance.** Criteria: groundedness of every number, warning appropriateness, abstention correctness, recommendation consistency. Protocol adapted from AbstentionBench and AgentAbstain; a controlled feasibility evaluation, not a generalising claim.
-
-## 8. Expected contribution
-
-An anomaly census of a production mobility feed; a quantified propagation analysis from data quality to decisions to cost, with its recoverable vs. unrecoverable share; controlled evidence on whether quality-awareness improves LLM-agent reliability in decision support.
+Same tool-grounded agent, two configurations: quality-blind (raw values) vs. quality-aware (values + safeguard flags). 8 operator questions × 3 conditions (clean / corrupted / corrupted-and-flagged) = 24 scenarios, fixed in advance. Criteria: groundedness of every number, warning appropriateness, abstention correctness, recommendation consistency. Protocol adapted from AbstentionBench and AgentAbstain; a controlled feasibility evaluation, not a generalising claim.
 
 ---
 
-# PART B — Internal working annex 
+# Internal working annex
 
-## B1. Collector architecture
+## A1. Collector architecture
 
 ```
 collector/
@@ -92,13 +90,13 @@ Flat gzip JSON/Parquet queried with pandas/duckdb — no database or queue neede
 
 **Redundancy (genuinely independent).** Primary: local cron on the working machine. Secondary: a runner on separate infrastructure (always-on VPS/Raspberry Pi or scheduled cloud job) with its own storage — two cron entries on one laptop are one machine with two alarm clocks. Daily integrity report: gaps > 2 min, station-count drift, hash-repeat streaks, per-runner uptime; archives reconciled at analysis time (union used, divergences logged).
 
-## B2. Licensing verification checklist
+## A2. Licensing verification checklist
 
 1. Archive BikeMi's open-data page (PDF + screenshot, dated).
 2. Quote the exact NLOD 2.0 attribution string verbatim in the appendix.
 3. Document the `Client-Identifier` value used and why (sanctioned API use, not scraping).
 4. No causal claim anywhere about *why* the licence is NLOD 2.0.
 
-## B3. Literature search terms
+## A3. Literature search terms
 
 "data quality" + machine learning + downstream decision cost · data-centric AI evaluation · GBFS / bike-sharing data quality, sensor fault detection · fault injection + time-series forecasting robustness · LLM agent abstention evaluation (AbstentionBench, arXiv 2506.09038; AgentAbstain, arXiv 2607.10059) · calibrated abstention in tool-using agents · cost-sensitive decisions under corrupted inputs · preventive vs. reactive rebalancing / repositioning OR literature · DQ dimensions canon (Wang & Strong; Sebastian-Coleman).

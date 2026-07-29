@@ -37,7 +37,7 @@ python collector/integrity_report.py  # run daily: collection health report
 ## Data & licensing
 - **Source:** BikeMi official public GBFS feed (`station_status`), polled every 60 s with the required `Client-Identifier` header, published under NLOD 2.0 (attribution). The licence page is archived in the thesis appendix.
 - **Raw data is not versioned in git** (see `.gitignore`): it is a multi-gigabyte research asset, archived locally with an independent backup.
-- **Secondary clean substrate** for injection experiments: SF Bay Area Bike Share (Kaggle), verified on download.
+- **Injection substrate:** the project's own BikeMi collection (longest continuous high-coverage segment of the window), not an external historical dataset — see `docs/thesis_outline.md` §4.
 
 ## Status
 - [ ] Collector running continuously
