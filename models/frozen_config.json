@@ -14,10 +14,11 @@
     "temp_c",
     "precip_mm"
   ],
-  "trained_on_rows": 199360,
-  "train_end": "2026-07-29 10:00:45+00:00",
-  "val_end": "2026-07-29 14:42:30+00:00",
-  "test_auc": 0.6147189898398774,
-  "test_corr_bikes_lag1_label": -0.07178358600126504,
+  "trained_on_rows": 204800,
+  "train_end": "2026-07-29 10:18:15+00:00",
+  "val_end": "2026-07-29 19:32:45+00:00",
+  "test_end": "2026-07-30 08:20:30+00:00",
+  "test_auc": 0.6084356297351632,
+  "test_corr_bikes_lag1_label": -0.07005513565142119,
   "weather_source": "Open-Meteo archive API, Milan (45.4642N, 9.1900E)"
 }

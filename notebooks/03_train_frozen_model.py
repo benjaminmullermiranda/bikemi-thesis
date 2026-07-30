@@ -67,9 +67,10 @@ def main():
           f"({100*len(feat)/len(raw):.1f}% of raw)")
 
     cut1, cut2 = feat["ts"].quantile([0.6, 0.8])
+    test_end = feat["ts"].max()  # bound the test window explicitly - see below
     train = feat[feat["ts"] <= cut1]
     val = feat[(feat["ts"] > cut1) & (feat["ts"] <= cut2)].sort_values(["station_id", "ts"])
-    test = feat[feat["ts"] > cut2].sort_values(["station_id", "ts"])
+    test = feat[(feat["ts"] > cut2) & (feat["ts"] <= test_end)].sort_values(["station_id", "ts"])
     print(f"train={len(train)} val={len(val)} test={len(test)} (chronological split)")
 
     model = train_frozen_model(train[all_feature_cols], train["label"])
@@ -94,8 +95,17 @@ def main():
         "tau": best_tau,
         "feature_cols": all_feature_cols,
         "trained_on_rows": len(train),
+        # train_end/val_end/test_end together are the FROZEN split boundaries.
+        # The collector runs continuously, so recomputing quantiles fresh later
+        # silently shifts train/val/test membership and the reported test_auc
+        # with it (measured: 0.6147 at save time -> 0.6137-0.6140 when
+        # recomputed minutes later on a larger collection). Any future script
+        # reproducing this split MUST reuse these three saved timestamps
+        # (feat.ts <= train_end / (train_end, val_end] / (val_end, test_end])
+        # rather than recomputing feat["ts"].quantile([0.6, 0.8]).
         "train_end": str(cut1),
         "val_end": str(cut2),
+        "test_end": str(test_end),
         "test_auc": auc,
         "test_corr_bikes_lag1_label": corr,
         "weather_source": "Open-Meteo archive API, Milan (45.4642N, 9.1900E)",
