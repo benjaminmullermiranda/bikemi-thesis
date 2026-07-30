@@ -1,0 +1,23 @@
+{
+  "tau": 0.6000000000000001,
+  "feature_cols": [
+    "bikes_lag1",
+    "bikes_lag2",
+    "bikes_lag5",
+    "bikes_lag15",
+    "docks_lag1",
+    "docks_lag2",
+    "docks_lag5",
+    "docks_lag15",
+    "hour",
+    "weekday",
+    "temp_c",
+    "precip_mm"
+  ],
+  "trained_on_rows": 199360,
+  "train_end": "2026-07-29 10:00:45+00:00",
+  "val_end": "2026-07-29 14:42:30+00:00",
+  "test_auc": 0.6147189898398774,
+  "test_corr_bikes_lag1_label": -0.07178358600126504,
+  "weather_source": "Open-Meteo archive API, Milan (45.4642N, 9.1900E)"
+}
