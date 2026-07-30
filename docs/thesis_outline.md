@@ -70,11 +70,21 @@ Same tool-grounded agent, two configurations: quality-blind (raw values) vs. qua
 
 ```
 collector/
-├── poll.py        # 60 s fetch loop (requests + tenacity retry/backoff)
-├── archive.py     # immutable raw writer: gzip JSON, partitioned by date
-├── metadata.py    # acquisition-metadata logger (one row per poll)
-└── config.yaml    # feed URL, Client-Identifier, poll interval, snapshot date
+├── poll.py               # 60 s fetch loop: fetch, gzip-archive, and log metadata
+│                            all inline (no separate archive.py/metadata.py/config.yaml
+│                            modules - that split was planned, never built)
+├── integrity_report.py   # daily health check: coverage, success rate, gaps, hash-repeat streaks
+├── run_collector.bat     # Windows launcher
+└── run_collector.ps1     # PowerShell launcher
 ```
+
+**No retry/backoff.** poll.py has no retry logic on request failure: a failed poll logs
+`"ERROR"` to metadata.csv with the exception detail and waits for the next scheduled
+60 s cycle - it does not retry within the same cycle. One real consequence already
+observed: `data/raw/20260727T071200Z.json.gz` is truncated at byte 65,536 (an I/O
+buffer-size boundary, consistent with an interrupted write) and fails to parse -
+`load_snapshots()` in notebooks/01_poc_pipeline.py now counts and reports skipped
+unreadable files instead of silently discarding them.
 
 | Metadata field | Purpose |
 |---|---|
@@ -100,3 +110,9 @@ Flat gzip JSON/Parquet queried with pandas/duckdb — no database or queue neede
 ## A3. Literature search terms
 
 "data quality" + machine learning + downstream decision cost · data-centric AI evaluation · GBFS / bike-sharing data quality, sensor fault detection · fault injection + time-series forecasting robustness · LLM agent abstention evaluation (AbstentionBench, arXiv 2506.09038; AgentAbstain, arXiv 2607.10059) · calibrated abstention in tool-using agents · cost-sensitive decisions under corrupted inputs · preventive vs. reactive rebalancing / repositioning OR literature · DQ dimensions canon (Wang & Strong; Sebastian-Coleman).
+
+## A4. T4 POC validation notes
+
+**Model signal is real but modest.** Frozen logistic regression (T4, Class 5 only): test-set AUC = 0.61 (0.5 = no signal, 1.0 = perfect); corr(bikes_lag1, 2h-ahead critical label) = -0.07 - correctly signed (fewer bikes now predicts more likely critical later) but weak. Downstream cost/flip-rate numbers from T4 should be read against this: the model discriminates better than chance but isn't a strong forecaster, which is part of why corruption needs real amplitude to move decisions.
+
+**Observed natural anomaly, unexplained.** Station 2091's derived capacity (num_bikes_available + num_docks_available) swings from 0 to 36 across the 5-day collection window - the largest swing of any of the 320 stations (206/320 stations show a swing >= 5; only 4/320 show <= 1, i.e. trivial noise). `is_installed`/`is_renting`/`is_returning` are `True` for all 2,452 observations at this station, so the swing is not explained by those status flags. Logged here as an observed candidate for SO1 (anomaly characterisation), not a code defect - cause not yet investigated.

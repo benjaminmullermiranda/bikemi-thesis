@@ -32,10 +32,12 @@ INJECTION_SEED = 1
 def load_snapshots(pattern="data/raw/*.json.gz"):
     rows = []
     seen_last_updated = set()
+    corrupt = 0
     for f in sorted(glob.glob(pattern)):
         try:
             d = json.load(gzip.open(f, "rt", encoding="utf-8"))
         except Exception:
+            corrupt += 1  # e.g. a truncated write from a crash mid-poll - real, has happened
             continue
         last_updated = d["last_updated"]
         if last_updated in seen_last_updated:
@@ -46,6 +48,8 @@ def load_snapshots(pattern="data/raw/*.json.gz"):
         ts = pd.Timestamp(last_updated, unit="s", tz="UTC")
         for s in d["data"]["stations"]:
             rows.append((s["station_id"], ts, s["num_bikes_available"], s["num_docks_available"]))
+    if corrupt:
+        print(f"WARNING: skipped {corrupt} unreadable/corrupt raw file(s)")
     return pd.DataFrame(rows, columns=["station_id", "ts", "num_bikes_available", "num_docks_available"])
 
 
