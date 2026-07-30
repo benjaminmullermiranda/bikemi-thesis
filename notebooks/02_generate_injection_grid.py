@@ -32,21 +32,23 @@ SEEDS = [0, 1, 2, 3, 4]
 
 GRID_SPEC = {
     "class1_dropout": {
+        # durations sized for the certified substrate (6.2h, see certify_clean_substrate):
+        # 1h max leaves headroom for 5 independently-placed seeds without heavy overlap
         "injector": inject_station_dropout,
         "intensities": [
-            {"stations": 1, "duration": "10min"},
-            {"stations": 1, "duration": "30min"},
-            {"stations": 3, "duration": "1h"},
-            {"stations": 5, "duration": "3h"},
+            {"stations": 1, "duration": "5min"},
+            {"stations": 1, "duration": "15min"},
+            {"stations": 3, "duration": "30min"},
+            {"stations": 5, "duration": "1h"},
         ],
     },
     "class2_frozen": {
         "injector": inject_frozen_counter,
         "intensities": [
-            {"station": None, "duration": "10min"},
+            {"station": None, "duration": "5min"},
+            {"station": None, "duration": "15min"},
             {"station": None, "duration": "30min"},
             {"station": None, "duration": "1h"},
-            {"station": None, "duration": "3h"},
         ],
     },
     "class3_stale": {
