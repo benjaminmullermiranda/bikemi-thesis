@@ -2,4 +2,5 @@ requests        # collector: HTTP polling of the GBFS feed
 pandas          # analysis (Phase 3+)
 numpy           # analysis (Phase 3+)
 scikit-learn    # frozen forecast model (Phase 3+)
+pyarrow         # parquet I/O for the injection grid (T7)
 pytest          # tests
