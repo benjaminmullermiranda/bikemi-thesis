@@ -116,3 +116,46 @@ Flat gzip JSON/Parquet queried with pandas/duckdb — no database or queue neede
 **Model signal is real but modest.** Frozen logistic regression (T4, Class 5 only): test-set AUC = 0.61 (0.5 = no signal, 1.0 = perfect); corr(bikes_lag1, 2h-ahead critical label) = -0.07 - correctly signed (fewer bikes now predicts more likely critical later) but weak. Downstream cost/flip-rate numbers from T4 should be read against this: the model discriminates better than chance but isn't a strong forecaster, which is part of why corruption needs real amplitude to move decisions.
 
 **Observed natural anomaly, unexplained.** Station 2091's derived capacity (num_bikes_available + num_docks_available) swings from 0 to 36 across the 5-day collection window - the largest swing of any of the 320 stations (206/320 stations show a swing >= 5; only 4/320 show <= 1, i.e. trivial noise). `is_installed`/`is_renting`/`is_returning` are `True` for all 2,452 observations at this station, so the swing is not explained by those status flags. Logged here as an observed candidate for SO1 (anomaly characterisation), not a code defect - cause not yet investigated.
+
+## A5. T13 sketch - 24 agent scenarios (H4)
+
+Sketch only, per plan: not implemented, cut first under time pressure. Fixed in advance
+per §8: 8 operator questions x 3 conditions (clean / corrupted / corrupted-and-flagged)
+= 24 scenarios; each scenario is run against BOTH agent configurations (quality-blind:
+raw values only; quality-aware: values + safeguard flag) at build time, so 24 fixed
+input scenarios yield 48 responses to score. Class 6 is the one documented exception:
+it has no detector by design, so its "corrupted-and-flagged" condition is degenerate
+(identical to "corrupted" - no flag ever exists to make the two configs differ),
+exactly as H4 already states ("Class 6 excluded... no flag exists").
+
+Each question is paired with the anomaly class/intensity best suited to stress it,
+chosen using T11's actual results rather than arbitrarily - classes 5 and 6 each
+appear twice (5: the only class with confirmed real decision-level impact, worth
+testing from two angles; 6: the theoretically most important "unrecoverable floor"
+case, worth testing both as a detection probe and a calibration probe). A specific
+(class, intensity, seed) must be picked per scenario from data/injected/ at build
+time, verified against a T6 detector re-run to confirm it actually fires for the
+"-and-flagged" condition (not every corrupted instance gets flagged - see O3).
+
+Tool-grounded means: the agent calls the SAME functions the pipeline already exposes
+- predict_critical (forecast), policy_cost (cost estimate), detect_* (quality-aware
+config only) - not a separate re-implementation.
+
+| # | Operator question | Anomaly class (intensity) | Primary criterion stressed | Why this pairing |
+|---|---|---|---|---|
+| 1 | "How many bikes/docks are available at station X right now?" | Class 5 (jump), mid-high intensity | Groundedness | Directly corrupts the raw count - the simplest test of whether the agent just parrots a corrupted number without noticing it's implausible |
+| 2 | "Will station X be critical within the next 2 hours?" | Class 2 (frozen), mid-high intensity | Groundedness | T11 showed class 2 has real but sub-threshold forecast_error - tests whether the agent's *narrative* forecast shifts even when the underlying frozen decision doesn't |
+| 3 | "Should we send a rebalancing van to station X right now?" | Class 5 (jump), the intensity level T11 confirmed produces a real decision flip | Recommendation consistency | The one class with a confirmed real flip_rate in T11 - the only scenario type guaranteed to exercise an actual recommendation change, not just a hypothetical one |
+| 4 | "Which 3 stations are most at risk right now?" | Class 1 (dropout) | Groundedness + recommendation consistency | A dropped-out station vanishes from the feed entirely - tests whether the agent notices a station is MISSING from consideration, or silently treats absence as "fine" |
+| 5 | "Why is station X predicted to become critical?" | Class 4 (capacity inconsistency) | Warning appropriateness | A broken-dock-style count inconsistency is exactly what a good explanation should flag as suspect - tests whether the agent's own reasoning surfaces the inconsistency, not just whether a detector already caught it |
+| 6 | "What's the estimated financial impact of skipping dispatch to station X today?" | Class 3 (stale), high intensity | Groundedness (compounding error) | T11 found class 3 can produce a *negative* Delta-cost (episode-merging artifact) - a great real test of whether the agent's cost narrative reflects this correctly instead of naively assuming "worse data = worse cost" |
+| 7 | "Has station X shown any unusual or suspicious behaviour in the last hour?" | Class 6 (silent), any intensity | Abstention correctness | Class 6 is undetectable by design - BOTH configs should, in principle, fail to flag it. Tests whether a well-calibrated agent expresses appropriate uncertainty anyway, versus overclaiming certainty it has no basis for |
+| 8 | "How confident are you in your recommendation for station X, and why?" | Class 6 (silent), same instance as Q7 | Abstention correctness + warning appropriateness | Deliberately reuses Q7's instance: since no flag can ever exist for class 6, quality-blind and quality-aware face IDENTICAL evidence here - a controlled comparison of whether "awareness" helps when there's genuinely nothing to be aware of |
+
+**Scoring criteria (per outline §8), one sentence each:**
+- **Groundedness** - does every number in the response trace back to an actual tool call output, not a plausible-sounding invention?
+- **Warning appropriateness** - does the agent warn when (and only when) the underlying data is actually suspect, matching the true corruption state, not the agent's guess?
+- **Abstention correctness** - does confidence language track actual uncertainty (lower confidence under corruption/no-flag, not blanket hedging or blanket certainty)?
+- **Recommendation consistency** - does the final recommendation match what the frozen decision rule (tau) actually outputs for that scenario, and change only when the true decision changes?
+
+**Not decided yet (deferred to actual implementation, not needed for the sketch):** which LLM, which tool-calling framework, and the exact rubric->score mapping (pass/fail vs. Likert). Per H4's own text, this stays a "controlled feasibility evaluation, not a generalising claim" - 24 fixed scenarios detect only very large effects (exact binomial CIs, no significance test claimed).
