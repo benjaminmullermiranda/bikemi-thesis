@@ -114,17 +114,21 @@ not just Class 2.** `class1_dropout` and `class4_capacity` also have `flip_rate=
 was already true in the very first committed run (`git show c5e1a61:reports/t11_dose_response.csv`),
 not something introduced by either fix. Only `class5_jump` (strong, scales with intensity:
 delta_cost 243 to 10,655), `class6_silent` (modest, 2.7 to 8.9), and `class3_stale` (small,
-sign-flipping — the known episode-merging artifact) move any decision at all. The likely
-mechanism: with test AUC 0.61 and tau=0.6, very few rows sit close enough to the threshold
-in clean data for a subtle perturbation (a frozen lag value, one missing station, a
-capacity-count mismatch) to flip anything - only large-magnitude corruption (jump's
-multi-bike swing, silent's true-vs-shown gap) moves probabilities far enough. Whether this
-holds on the larger, final substrate is genuinely unknown - a bigger substrate could put
-more station-hours near the threshold, making subtler classes measurable, or the pattern
-could persist. This is not something to fix in code; it's a property of the current
-model/threshold/substrate combination that needs stating plainly if it's still true at
-collection close, since it would mean H3's recoverability claim is only testable for half
-the taxonomy.
+sign-flipping — the known episode-merging artifact) move any decision at all. **Mechanism confirmed 2026-08-08 (diagnostic, not a code change - scored the clean
+substrate with the already-frozen model, nothing frozen touched):** on the certified
+substrate, clean-data P-hat ranges 0.109 to 0.753 (median 0.305, p95 0.479, p99 0.579)
+against tau=0.6 - the vast majority of rows sit well below threshold. Only 936/110,022
+rows (0.85%) already dispatch in clean data; even a generous +/-0.1 band around tau
+contains just 4,083 rows (3.71%), and +/-0.01 contains only 126 (0.12%). Classes 1/2/4's
+induced forecast_error (~1e-5 to 1e-6, confirmed for Class 2 above) is far smaller than
+the gap most rows would need to close to reach tau - only large-magnitude corruption
+(jump's multi-bike swing, silent's true-vs-shown gap) moves probabilities far enough to
+matter here. This is a property of the current substrate: a bigger substrate at
+collection close could put more station-hours near tau, making the subtler classes
+measurable, or the pattern could persist - genuinely unknown until then. Not a code
+defect, not something to fix by touching tau/intensities/model; state plainly if still
+true at collection close, since it would mean H3's recoverability claim is only testable
+for half the taxonomy (classes 3/5/6, not 1/2/4).
 
 The re-run's own numbers (`reports/t11_dose_response.csv`, `reports/t14_h1_*`,
 `reports/t14_h2_*`) are POC-level, same status as the original 2026-07-30 run, not the
