@@ -81,26 +81,32 @@ def inject_stale_update(df, lag_s, scope, seed):
     return out
 
 
-def inject_capacity_inconsistency(df, magnitude, seed, min_effect_frac=0.2):
+def inject_capacity_inconsistency(df, magnitude, seed, min_effect_duration="30min"):
     """Class 4 (consistency): simulates a broken dock / config drift. Unlike
     Class 2's transient frozen sensor, a physical fault doesn't self-heal: from a
     randomly chosen point onward, ONE randomly chosen station's num_bikes_available
     is persistently offset by `magnitude` WITHOUT compensating num_docks_available,
     breaking the bikes+docks=capacity invariant for the rest of the window.
 
-    drift_start is bounded to the first (1-min_effect_frac) of the station's
-    timestamps (default: first 80%) so the drift always affects a meaningful,
-    comparable-across-seeds trailing window - found 2026-08-08: without this bound,
-    a seed could draw drift_start at/near the station's LAST timestamp, giving a
+    drift_start is bounded so at least min_effect_duration of trailing data remains
+    (default 30min - the midpoint of Classes 1/2's own 5/15/30/60min intensity scale,
+    not a freshly invented number) so the drift always affects a meaningful,
+    comparable-across-seeds window - found 2026-08-08: without this bound, a seed
+    could draw drift_start at/near the station's LAST timestamp, giving a
     near-zero-row (sometimes zero-row) "corrupted" run purely from where the RNG
     landed, not from the intensity - seed-to-seed placement noise masquerading as
-    intensity variance in the class x intensity effect H2 depends on."""
+    intensity variance in the class x intensity effect H2 depends on. An absolute
+    duration (vs. a fraction of substrate length, tried first) keeps the guarantee
+    meaningful regardless of how long the certified substrate ends up being."""
     rng = np.random.default_rng(seed)
     out = df.copy().sort_values(["station_id", "ts"]).reset_index(drop=True)
     station = rng.choice(out["station_id"].unique())
     station_ts = sorted(out.loc[out["station_id"] == station, "ts"].unique())
-    max_start_idx = max(1, int(len(station_ts) * (1 - min_effect_frac)))
-    drift_start = station_ts[rng.integers(0, max_start_idx)]
+    min_effect_duration = pd.Timedelta(min_effect_duration)
+    latest_allowed = station_ts[-1] - min_effect_duration
+    eligible = [t for t in station_ts if t <= latest_allowed]
+    candidates = eligible if eligible else station_ts[:1]
+    drift_start = candidates[rng.integers(0, len(candidates))]
     mask = (out["station_id"] == station) & (out["ts"] >= drift_start)
     out.loc[mask, "num_bikes_available"] = (out.loc[mask, "num_bikes_available"] + magnitude).clip(lower=0)
     return out

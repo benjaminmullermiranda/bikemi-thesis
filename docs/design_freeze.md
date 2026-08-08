@@ -108,6 +108,24 @@ recoverability claim stays untestable on this substrate specifically, independen
 detector fix. Both the fix and this follow-on limitation should be stated together if this
 ever comes up with Russo, not just the fix in isolation.
 
+**Broader pattern, confirmed 2026-08-08: half the classes show zero decision-level impact,
+not just Class 2.** `class1_dropout` and `class4_capacity` also have `flip_rate=0.0` and
+`delta_cost=0.0` across every (intensity, seed) row — checked directly, and confirmed this
+was already true in the very first committed run (`git show c5e1a61:reports/t11_dose_response.csv`),
+not something introduced by either fix. Only `class5_jump` (strong, scales with intensity:
+delta_cost 243 to 10,655), `class6_silent` (modest, 2.7 to 8.9), and `class3_stale` (small,
+sign-flipping — the known episode-merging artifact) move any decision at all. The likely
+mechanism: with test AUC 0.61 and tau=0.6, very few rows sit close enough to the threshold
+in clean data for a subtle perturbation (a frozen lag value, one missing station, a
+capacity-count mismatch) to flip anything - only large-magnitude corruption (jump's
+multi-bike swing, silent's true-vs-shown gap) moves probabilities far enough. Whether this
+holds on the larger, final substrate is genuinely unknown - a bigger substrate could put
+more station-hours near the threshold, making subtler classes measurable, or the pattern
+could persist. This is not something to fix in code; it's a property of the current
+model/threshold/substrate combination that needs stating plainly if it's still true at
+collection close, since it would mean H3's recoverability claim is only testable for half
+the taxonomy.
+
 The re-run's own numbers (`reports/t11_dose_response.csv`, `reports/t14_h1_*`,
 `reports/t14_h2_*`) are POC-level, same status as the original 2026-07-30 run, not the
 registered result. The single

@@ -146,9 +146,21 @@ def run_h2(dose_response_csv="reports/t11_dose_response.csv"):
 
     perm_p = None
     if not diagnostics_ok:
+        # Freedman-Lane (1983): permuting the raw response against all labels tests
+        # "is there any structure at all" (no main effects AND no interaction), not
+        # specifically the interaction - main effects alone could make the interaction
+        # F look artificially extreme relative to a fully-scrambled null. Instead: fit
+        # the REDUCED (main-effects-only) model, permute ITS residuals, add them back
+        # to the reduced model's fitted values, then refit the FULL model on that
+        # pseudo-response and read off the interaction F. This isolates "no interaction
+        # beyond what main effects explain" as the null, which is what H2 actually asks.
         rng = np.random.default_rng(0)
         n_perm = 5000
         observed_f = interaction_f
+
+        reduced = smf.ols("delta_cost ~ C(anomaly_class) + C(intensity_idx)", data=df).fit()
+        reduced_fitted = reduced.fittedvalues.to_numpy()
+        reduced_resid = reduced.resid.to_numpy()
 
         def interaction_f_stat(frame):
             m = smf.ols("delta_cost ~ C(anomaly_class) * C(intensity_idx)", data=frame).fit()
@@ -157,15 +169,13 @@ def run_h2(dose_response_csv="reports/t11_dose_response.csv"):
             return tab.loc[row[0], "F"] if row else np.nan
 
         perm_stats = np.empty(n_perm)
-        values = df["delta_cost"].to_numpy()
         for i in range(n_perm):
             permuted = df.copy()
-            permuted["delta_cost"] = rng.permutation(values)
+            permuted["delta_cost"] = reduced_fitted + rng.permutation(reduced_resid)
             perm_stats[i] = interaction_f_stat(permuted)
         perm_p = float((perm_stats >= observed_f).mean())
-        print(f"\nPermutation test ({n_perm} permutations, shuffling delta_cost against "
-              f"class x intensity labels): observed F={observed_f:.3f}, "
-              f"permutation p={perm_p:.4f}")
+        print(f"\nPermutation test (Freedman-Lane, {n_perm} permutations of reduced-model "
+              f"residuals): observed F={observed_f:.3f}, permutation p={perm_p:.4f}")
 
     result = {
         "n_rows": len(df), "interaction_F": float(interaction_f),
