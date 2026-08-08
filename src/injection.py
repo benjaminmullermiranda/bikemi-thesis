@@ -81,17 +81,26 @@ def inject_stale_update(df, lag_s, scope, seed):
     return out
 
 
-def inject_capacity_inconsistency(df, magnitude, seed):
+def inject_capacity_inconsistency(df, magnitude, seed, min_effect_frac=0.2):
     """Class 4 (consistency): simulates a broken dock / config drift. Unlike
     Class 2's transient frozen sensor, a physical fault doesn't self-heal: from a
     randomly chosen point onward, ONE randomly chosen station's num_bikes_available
     is persistently offset by `magnitude` WITHOUT compensating num_docks_available,
-    breaking the bikes+docks=capacity invariant for the rest of the window."""
+    breaking the bikes+docks=capacity invariant for the rest of the window.
+
+    drift_start is bounded to the first (1-min_effect_frac) of the station's
+    timestamps (default: first 80%) so the drift always affects a meaningful,
+    comparable-across-seeds trailing window - found 2026-08-08: without this bound,
+    a seed could draw drift_start at/near the station's LAST timestamp, giving a
+    near-zero-row (sometimes zero-row) "corrupted" run purely from where the RNG
+    landed, not from the intensity - seed-to-seed placement noise masquerading as
+    intensity variance in the class x intensity effect H2 depends on."""
     rng = np.random.default_rng(seed)
     out = df.copy().sort_values(["station_id", "ts"]).reset_index(drop=True)
     station = rng.choice(out["station_id"].unique())
     station_ts = sorted(out.loc[out["station_id"] == station, "ts"].unique())
-    drift_start = station_ts[rng.integers(0, len(station_ts))]
+    max_start_idx = max(1, int(len(station_ts) * (1 - min_effect_frac)))
+    drift_start = station_ts[rng.integers(0, max_start_idx)]
     mask = (out["station_id"] == station) & (out["ts"] >= drift_start)
     out.loc[mask, "num_bikes_available"] = (out.loc[mask, "num_bikes_available"] + magnitude).clip(lower=0)
     return out

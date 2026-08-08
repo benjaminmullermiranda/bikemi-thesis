@@ -79,7 +79,25 @@ def apply_safeguard(corrupted_df, class_name):
     if class_name == "class1_dropout":
         return None  # rows are REMOVED, not corrupted-in-place - nothing to carry-forward recover
     elif class_name == "class2_frozen":
-        flagged = detect_frozen_counter(df, window="60min")["frozen"]
+        # window must be shorter than the shortest injected intensity (5min, GRID_SPEC
+        # class2_frozen level 0) or the detector can never fire on it at all: a time-based
+        # rolling window still contains pre-freeze variation until the ENTIRE window falls
+        # inside the frozen period. Verified: window="60min" flagged 0/5, 0/15, 0/30, 1/60
+        # rows across the four intensities (5/15/30/60min) - it could only ever catch the
+        # tail of the longest one. window="3min" flags 3/5, 13/15, 28/30, 58/60 - catches
+        # all four. Found and fixed during the 2026-08-08 freeze.
+        #
+        # NOTE (2026-08-08, after re-running with this fix): delta_cost for class2_frozen
+        # is STILL exactly 0.0 across all 20 (intensity, seed) combinations - but this is
+        # now a real finding, not the old bug. forecast_error IS non-zero after the fix
+        # (up to ~2.4e-5), confirming the detector/model do see the frozen counter; but at
+        # this magnitude, against tau=0.6 and this model's weak discrimination (test AUC
+        # 0.61), the probability shift never crosses the decision threshold - flip_rate=0.0
+        # for every row. recovery_rate stays NaN because there is genuinely no cost gap to
+        # recover here, not because the detector can't see the corruption anymore. Class 2's
+        # near-zero propagation on this substrate is itself informative for H2 (differing
+        # class effects), not a defect to chase further.
+        flagged = detect_frozen_counter(df, window="3min")["frozen"]
     elif class_name == "class4_capacity":
         flagged = detect_capacity_inconsistency(
             df.assign(bike=df["num_bikes_available"], ebike=0, ebike_with_childseat=0),

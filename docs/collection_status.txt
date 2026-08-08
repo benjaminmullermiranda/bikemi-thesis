@@ -1,14 +1,59 @@
-﻿Period        : 2026-07-24 09:46:06 -> 2026-07-25 14:46:30 UTC  (29.0 h)
-COVERAGE      : 15.1%   (259 polls logged / ~1712 expected)
-Success rate  : 96.1%   (249 HTTP 200 of 259 logged)
-Errors logged : 10
-Gaps > 2 min  : 7  |  time lost in gaps: 24.7 h
-    2026-07-24 10:29:58 UTC  ->  341 s (6 min)
-    2026-07-24 11:14:38 UTC  ->  127 s (2 min)
-    2026-07-24 11:16:45 UTC  ->  806 s (13 min)
-    2026-07-24 11:35:11 UTC  ->  3514 s (59 min)
-    2026-07-24 14:27:55 UTC  ->  1705 s (28 min)
-    2026-07-24 14:56:20 UTC  ->  3381 s (56 min)
-    2026-07-24 16:02:54 UTC  ->  79203 s (1320 min)
-Stations      : min=320  max=320
-Longest identical-payload streak: 1
+Period        : 2026-07-24 09:46:06 -> 2026-08-08 15:10:01 UTC  (365.4 h)
+COVERAGE      : 62.0%   (13374 logged / ~21565 expected)
+Success rate  : 59.1%   (7899 HTTP 200 of 13374 logged)
+Errors logged : 5475
+     5066  ConnectionError
+      382  HTTPSConnectionPool(host='gbfs.urbansharing.com', port=443)
+       10  SSLError
+        8  ConnectTimeout
+        7  ReadTimeout
+        2  JSONDecodeError
+Gaps > 2 min  : 25  |  time lost: 139.7 h   (ALL listed below)
+    2026-07-24 10:29:58 UTC  ->     341 s (6 min)
+    2026-07-24 11:14:38 UTC  ->     127 s (2 min)
+    2026-07-24 11:16:45 UTC  ->     806 s (13 min)
+    2026-07-24 11:35:11 UTC  ->    3514 s (59 min)
+    2026-07-24 14:27:55 UTC  ->    1705 s (28 min)
+    2026-07-24 14:56:20 UTC  ->    3381 s (56 min)
+    2026-07-24 16:02:54 UTC  ->   79203 s (1320 min)
+    2026-07-25 19:24:53 UTC  ->    1194 s (20 min)
+    2026-07-25 19:55:10 UTC  ->     522 s (9 min)
+    2026-07-26 05:18:55 UTC  ->   17401 s (290 min)
+    2026-07-26 22:05:08 UTC  ->     165 s (3 min)
+    2026-07-27 15:44:51 UTC  ->   82174 s (1370 min)
+    2026-07-28 21:00:56 UTC  ->   39451 s (658 min)
+    2026-07-30 00:48:48 UTC  ->   24532 s (409 min)
+    2026-07-31 00:46:44 UTC  ->   30482 s (508 min)
+    2026-07-31 22:12:14 UTC  ->   39466 s (658 min)
+    2026-08-01 19:11:50 UTC  ->    1856 s (31 min)
+    2026-08-01 22:01:28 UTC  ->   42645 s (711 min)
+    2026-08-03 12:41:37 UTC  ->     567 s (9 min)
+    2026-08-04 00:11:49 UTC  ->   32609 s (543 min)
+    2026-08-05 02:32:16 UTC  ->   25611 s (427 min)
+    2026-08-05 19:37:38 UTC  ->     585 s (10 min)
+    2026-08-06 01:39:30 UTC  ->   24622 s (410 min)
+    2026-08-07 01:31:11 UTC  ->   26224 s (437 min)
+    2026-08-08 02:23:05 UTC  ->   23725 s (395 min)
+Stations      : min=318  max=320
+Longest identical-payload streak: 2
+
+--- T01 diagnostic note (2026-08-08) ---
+Certified injection substrate (longest continuous gap-free segment, gap threshold 120s,
+via notebooks/02_generate_injection_grid.py:certify_clean_substrate) has NOT grown since
+first measured on 2026-07-30: still 2026-07-25 20:03:45 -> 2026-07-26 02:17:45 UTC (6.2h,
+117760 rows), out of 15+ days of collection since.
+
+Two confirmed root causes, both actively breaking substrate continuity:
+1. Laptop fully sleeps every night (Windows Kernel-Power events, ~2026-08-01 onward,
+   "Suspension reason: Battery"; idle-timeout sleep is OFF for AC and DC, so this is
+   lid-close or manual sleep, not the idle timer). Each event = a multi-hour gap with
+   zero polls logged (not just failed ones) - the process cannot run while the OS sleeps.
+2. Intermittent DNS resolution failures on the network while the collector IS running
+   (e.g. 2026-08-08T13:40:58Z-13:54:59Z: 15 consecutive ERROR rows, all
+   "Failed to resolve 'gbfs.urbansharing.com' [Errno 11001]"). These log as ERROR rows
+   (so they count toward "polls logged"/coverage) but still break the >120s-gap-free
+   segment used for substrate certification, since no raw snapshot is written on failure.
+
+Net effect: with 20 days left before the 2026-08-28 collection close, the certified
+substrate is still a single clean night, not growing. Needs the sleep issue fixed
+(and network flakiness investigated) before more days are lost - see chat for options.

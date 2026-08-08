@@ -78,13 +78,16 @@ collector/
 └── run_collector.ps1     # PowerShell launcher
 ```
 
-**No retry/backoff.** poll.py has no retry logic on request failure: a failed poll logs
-`"ERROR"` to metadata.csv with the exception detail and waits for the next scheduled
-60 s cycle - it does not retry within the same cycle. One real consequence already
-observed: `data/raw/20260727T071200Z.json.gz` is truncated at byte 65,536 (an I/O
-buffer-size boundary, consistent with an interrupted write) and fails to parse -
-`load_snapshots()` in notebooks/01_poc_pipeline.py now counts and reports skipped
-unreadable files instead of silently discarding them.
+**One in-cycle retry, added 2026-08-08.** The collector runs on a phone hotspot (the only
+internet available for this project) with a high rate of transient, near-instant
+connection/DNS failures. poll.py now retries once (2 s wait) before logging `"ERROR"` to
+metadata.csv and waiting for the next scheduled 60 s cycle; a failure that survives both
+attempts is logged exactly as before - this recovers single-poll blips without hiding a
+real outage. One real consequence of the original no-retry design already observed:
+`data/raw/20260727T071200Z.json.gz` is truncated at byte 65,536 (an I/O buffer-size
+boundary, consistent with an interrupted write) and fails to parse - `load_snapshots()` in
+notebooks/01_poc_pipeline.py now counts and reports skipped unreadable files instead of
+silently discarding them.
 
 | Metadata field | Purpose |
 |---|---|

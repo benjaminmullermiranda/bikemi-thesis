@@ -1,0 +1,8 @@
+,0
+n_rows,120
+interaction_F,5460.508092567331
+parametric_p,1.406906594937551e-133
+shapiro_p,5.584214007699909e-20
+levene_p,0.00034541496355822875
+diagnostics_ok,False
+permutation_p,0.0
