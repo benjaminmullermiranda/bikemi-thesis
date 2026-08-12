@@ -1,8 +1,8 @@
 ,0
-n_bins,6720.0
-total_flagged,40791.0
-total_obs,2618222.0
-lr_statistic,7667.741944099587
-lr_df,339.0
+n_bins,7040.0
+total_flagged,51240.0
+total_obs,3469422.0
+lr_statistic,8423.389311356099
+lr_df,340.0
 lr_p_value,0.0
-alpha_dispersion,0.1283334445424867
+alpha_dispersion,0.13199090565035307

@@ -162,6 +162,7 @@ def evaluate_experiment(model, config, clean_feat, exp_path, weather):
     delta_cost = corrupted_cost["total"] - clean_cost["total"]
 
     recovery_rate = np.nan
+    delta_cost_recovered = np.nan  # post-safeguard Delta cost, paired with delta_cost for H3 (T14)
     if class_name in RECOVERABLE_CLASSES and class_name != "class1_dropout":
         recovered_df = apply_safeguard(corrupted_df, class_name)
         recovered_feat = score(model, config, recovered_df, weather=weather)
@@ -171,6 +172,7 @@ def evaluate_experiment(model, config, clean_feat, exp_path, weather):
         )
         merged_r["decision_recovered"] = merged_r["decision_recovered"].astype(object).fillna(merged_r["decision_corrupted"]).astype(bool)
         recovered_cost = policy_cost(merged_r["decision_recovered"], merged_r["label"], station_id=merged_r["station_id"])
+        delta_cost_recovered = recovered_cost["total"] - clean_cost["total"]
         gap = corrupted_cost["total"] - clean_cost["total"]
         recovery_rate = np.nan if gap == 0 else (corrupted_cost["total"] - recovered_cost["total"]) / gap
     elif class_name == "class6_silent":
@@ -180,7 +182,7 @@ def evaluate_experiment(model, config, clean_feat, exp_path, weather):
         "experiment_id": meta["class"] + f"__i{meta['intensity_idx']}__seed{meta['seed']}",
         "class": class_name, "intensity_idx": meta["intensity_idx"], "seed": meta["seed"],
         "n_rows": len(merged), "flip_rate": flip_rate, "forecast_error": forecast_error,
-        "delta_cost": delta_cost, "recovery_rate": recovery_rate,
+        "delta_cost": delta_cost, "delta_cost_recovered": delta_cost_recovered, "recovery_rate": recovery_rate,
     }
 
 

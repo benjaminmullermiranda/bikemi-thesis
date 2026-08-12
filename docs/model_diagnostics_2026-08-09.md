@@ -76,6 +76,28 @@ implements an already-decided spec. This is deliberately left unfixed and is pre
 as an open methodological finding, the same category as the H1 reframing - something to put
 in front of Russo, not silently resolve.
 
+## Addendum 2026-08-12: H3 safeguard makes class2_frozen worse, not better
+
+`notebooks/06_h3_recovery_test.py` (built and first run today) shows `class2_frozen`'s
+post-safeguard `delta_cost` mean = **14.984**, vs. pre-safeguard mean = 0.000 (all 20 pairs) —
+the carry-forward safeguard *increases* cost relative to doing nothing (Wilcoxon p=0.0000,
+95% CI [-14.984, -14.984] on cost recovered, i.e. all mass on "made it worse"). Not a bug:
+`apply_safeguard`'s 3-min detector window (needed to catch the 5/15/30/60-min injected
+freezes, per the fix documented above) also flags a large share of *naturally* static
+readings within the corrupted class2 dataset — O3 already documents ~31% natural frozen-flag
+rate overall (51-65% at night). Carry-forward then overwrites those legitimately-current-but-
+static readings with an older value, introducing drift that wasn't in the original corrupted
+data. `class4_capacity` stays pre==post==0 (no cost gap exists to recover, unchanged from the
+main finding above); `class5_jump` recovers normally (mean 13.479 recovered, 95% CI
+[6.731, 20.977]).
+
+**Is:** a genuine result about this class's safeguard, worth stating plainly — a low-precision
+detector can make a naive carry-forward safeguard net-negative for the class it's least suited
+to. **Isn't:** a reason to change the frozen recovery policy (§1) now, for the same freeze
+reason as the zero-impact finding above — changing it in response to seeing this result would
+be exactly the post-hoc tuning the freeze prohibits. Report as a finding for H3, not silently
+fixed.
+
 ## Supporting artifacts
 
 - `reports/t15_clean_phat_vector.csv` - full P-hat vector, 72,092 rows
