@@ -20,9 +20,6 @@ don't fit a count-per-bin GLM the same way. This narrows H1's operationalisation
 it honest rather than inflating the count with a confounded or vacuous signal.
 """
 import sys
-import glob
-import gzip
-import json
 from pathlib import Path
 
 import numpy as np
@@ -31,6 +28,7 @@ import statsmodels.formula.api as smf
 from scipy import stats as sstats
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src.data_io import load_snapshots as load_full_collection
 from src.validation import detect_implausible_jump
 
 REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
@@ -40,25 +38,6 @@ REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 # ---------------------------------------------------------------------------
 # H1: negative-binomial GLM, count ~ station + hour, LRT for unevenness
 # ---------------------------------------------------------------------------
-
-def load_full_collection(pattern="data/raw/*.json.gz"):
-    rows, seen, corrupt = [], set(), 0
-    for f in sorted(glob.glob(pattern)):
-        try:
-            d = json.load(gzip.open(f, "rt", encoding="utf-8"))
-        except Exception:
-            corrupt += 1
-            continue
-        lu = d["last_updated"]
-        if lu in seen:
-            continue
-        seen.add(lu)
-        ts = pd.Timestamp(lu, unit="s", tz="UTC")
-        for s in d["data"]["stations"]:
-            rows.append((s["station_id"], ts, s["num_bikes_available"], s["num_docks_available"]))
-    if corrupt:
-        print(f"WARNING: skipped {corrupt} unreadable/corrupt raw file(s)")
-    return pd.DataFrame(rows, columns=["station_id", "ts", "num_bikes_available", "num_docks_available"])
 
 
 def run_h1(raw):

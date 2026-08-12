@@ -9,42 +9,20 @@ certified 6.2h substrate - that smaller substrate is specifically for injection
 operating condition as possible.
 """
 import sys
-import glob
-import gzip
 import json
 from pathlib import Path
 
 import joblib
 import numpy as np
-import pandas as pd
 from sklearn.metrics import roc_auc_score
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src.data_io import load_snapshots
 from src.features import build_features, fetch_weather, FEATURE_COLS, WEATHER_COLS
 from src.model import train_frozen_model, predict_critical
 from src.costs import policy_cost
 
 MODEL_DIR = Path(__file__).resolve().parents[1] / "models"
-
-
-def load_snapshots(pattern="data/raw/*.json.gz"):
-    rows, seen, corrupt = [], set(), 0
-    for f in sorted(glob.glob(pattern)):
-        try:
-            d = json.load(gzip.open(f, "rt", encoding="utf-8"))
-        except Exception:
-            corrupt += 1
-            continue
-        lu = d["last_updated"]
-        if lu in seen:
-            continue
-        seen.add(lu)
-        ts = pd.Timestamp(lu, unit="s", tz="UTC")
-        for s in d["data"]["stations"]:
-            rows.append((s["station_id"], ts, s["num_bikes_available"], s["num_docks_available"]))
-    if corrupt:
-        print(f"WARNING: skipped {corrupt} unreadable/corrupt raw file(s)")
-    return pd.DataFrame(rows, columns=["station_id", "ts", "num_bikes_available", "num_docks_available"])
 
 
 def main():

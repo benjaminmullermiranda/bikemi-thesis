@@ -36,8 +36,8 @@ def fetch_station_information():
     except Exception as e:
         print(f"station_information fetch FAILED ({day}): {type(e).__name__}: {e}", flush=True)
 
-RETRY_ATTEMPTS = 2   # 1 initial + 1 retry, not more - a real outage should still show
-RETRY_WAIT_S = 2      # up as a logged ERROR, not be hidden by looping forever
+RETRY_ATTEMPTS = 5   # 1 initial + 4 retries - still logs ERROR if a real outage
+RETRY_WAIT_S = [2, 4, 8, 16]  # exponential backoff, ~30s total - leaves margin in the 60s cycle
 
 def poll_once():
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -46,8 +46,9 @@ def poll_once():
     r = None
     # 2026-08-08: collector runs on a phone hotspot - most failures are single-poll
     # DNS/connect blips (error latency ~single-digit ms, i.e. instant failure, not a
-    # timeout), not real outages. A real outage still exhausts both attempts and logs
-    # ERROR exactly as before; this only recovers the transient case.
+    # timeout), not real outages. Backoff up to ~30s rides out short blips (the DNS
+    # proxy on the hotspot recovering) while a real outage still exhausts all
+    # attempts and logs ERROR exactly as before, not hidden by looping forever.
     for attempt in range(RETRY_ATTEMPTS):
         try:
             r = requests.get(URL, headers=HEADERS, timeout=20)
@@ -56,7 +57,7 @@ def poll_once():
         except Exception as e:
             last_exc = e
             if attempt < RETRY_ATTEMPTS - 1:
-                time.sleep(RETRY_WAIT_S)
+                time.sleep(RETRY_WAIT_S[attempt])
     try:
         if last_exc is not None:
             raise last_exc

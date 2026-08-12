@@ -76,23 +76,8 @@ GRID_SPEC = {
 
 
 def load_clean_substrate(pattern="data/raw/*.json.gz"):
-    rows, seen, corrupt = [], set(), 0
-    for f in sorted(glob.glob(pattern)):
-        try:
-            d = json.load(gzip.open(f, "rt", encoding="utf-8"))
-        except Exception:
-            corrupt += 1
-            continue
-        lu = d["last_updated"]
-        if lu in seen:
-            continue
-        seen.add(lu)
-        ts = pd.Timestamp(lu, unit="s", tz="UTC")
-        for s in d["data"]["stations"]:
-            rows.append((s["station_id"], ts, s["num_bikes_available"], s["num_docks_available"]))
-    if corrupt:
-        print(f"WARNING: skipped {corrupt} unreadable/corrupt raw file(s)")
-    return pd.DataFrame(rows, columns=["station_id", "ts", "num_bikes_available", "num_docks_available"])
+    from src.data_io import load_snapshots
+    return load_snapshots(pattern)
 
 
 def certify_clean_substrate(raw, max_gap_s=120):

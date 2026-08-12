@@ -1,8 +1,17 @@
-# Research data: NEVER in git (multi-GB asset; backed up separately)
+# Research data: raw/processed/injected payloads NEVER in git (large, or
+# derived/reproducible from seeds+injectors) - the raw archive gets an automated
+# off-machine backup instead (collector/backup_to_drive.ps1), not git. Acquisition
+# metadata (data/metadata.csv, data/static/) DOES go in git per Russo's 2026-08-11
+# correction: GitHub is for code and metadata, not the raw archive itself.
 data/raw/*
 data/processed/*
+data/injected/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!data/injected/.gitkeep
+data/console.log
+data/*_run.log
+data/*_run.err.log
 
 # Python
 __pycache__/
@@ -14,5 +23,3 @@ venv/
 # Environment / secrets
 .env
 .DS_Store
-data/metadata.csv
-data/

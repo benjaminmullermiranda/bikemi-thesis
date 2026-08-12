@@ -9,9 +9,6 @@ Ground truth for cost/flip-rate evaluation is always the TRUE (uncorrupted)
 future critical state - injection corrupts what the model SEES (recent
 lag features), never the outcome being predicted.
 """
-import gzip
-import glob
-import json
 import sys
 from pathlib import Path
 
@@ -19,6 +16,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src.data_io import load_snapshots
 from src.features import build_features, FEATURE_COLS
 from src.model import train_frozen_model, predict_critical
 from src.injection import inject_value_jump
@@ -27,30 +25,6 @@ from src.costs import policy_cost, decision_flip_rate
 INJECTION_MAGNITUDE = 10   # bikes, one intensity level for this POC
 INJECTION_RATE = 0.05      # fraction of test-window rows hit
 INJECTION_SEED = 1
-
-
-def load_snapshots(pattern="data/raw/*.json.gz"):
-    rows = []
-    seen_last_updated = set()
-    corrupt = 0
-    for f in sorted(glob.glob(pattern)):
-        try:
-            d = json.load(gzip.open(f, "rt", encoding="utf-8"))
-        except Exception:
-            corrupt += 1  # e.g. a truncated write from a crash mid-poll - real, has happened
-            continue
-        last_updated = d["last_updated"]
-        if last_updated in seen_last_updated:
-            # upstream feed hadn't updated since the previous poll (a real, naturally
-            # occurring stale-feed event) - keep only the first observation of it
-            continue
-        seen_last_updated.add(last_updated)
-        ts = pd.Timestamp(last_updated, unit="s", tz="UTC")
-        for s in d["data"]["stations"]:
-            rows.append((s["station_id"], ts, s["num_bikes_available"], s["num_docks_available"]))
-    if corrupt:
-        print(f"WARNING: skipped {corrupt} unreadable/corrupt raw file(s)")
-    return pd.DataFrame(rows, columns=["station_id", "ts", "num_bikes_available", "num_docks_available"])
 
 
 def main():
