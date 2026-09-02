@@ -12,6 +12,7 @@ data/injected/*
 data/console.log
 data/*_run.log
 data/*_run.err.log
+data/backup.log
 
 # Python
 __pycache__/
