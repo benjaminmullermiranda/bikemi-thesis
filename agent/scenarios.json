@@ -1,0 +1,734 @@
+{
+ "experiment": "class5_jump__i2__seed0",
+ "tau": 0.8500000000000001,
+ "scenarios": [
+  {
+   "station_id": "2059",
+   "name": "140 - Cirene - Friuli",
+   "ts_utc": "2026-09-16 07:58:45+00:00",
+   "local_time": "2026-09-16 09:58",
+   "flip": false,
+   "question": "Should the rebalancing van go to station {name} now?",
+   "clean": {
+    "readings": [
+     {
+      "polls_ago": 15,
+      "time": "09:42",
+      "bikes": 12,
+      "docks": 11,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 5,
+      "time": "09:53",
+      "bikes": 13,
+      "docks": 10,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 2,
+      "time": "09:56",
+      "bikes": 13,
+      "docks": 10,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 1,
+      "time": "09:57",
+      "bikes": 13,
+      "docks": 10,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 0,
+      "time": "09:58",
+      "bikes": 13,
+      "docks": 10,
+      "jump_flag": false
+     }
+    ],
+    "proba": 0.331,
+    "decision": false
+   },
+   "corrupted": {
+    "readings": [
+     {
+      "polls_ago": 15,
+      "time": "09:42",
+      "bikes": 12,
+      "docks": 11,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 5,
+      "time": "09:53",
+      "bikes": 3,
+      "docks": 20,
+      "jump_flag": true
+     },
+     {
+      "polls_ago": 2,
+      "time": "09:56",
+      "bikes": 13,
+      "docks": 10,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 1,
+      "time": "09:57",
+      "bikes": 3,
+      "docks": 20,
+      "jump_flag": true
+     },
+     {
+      "polls_ago": 0,
+      "time": "09:58",
+      "bikes": 13,
+      "docks": 10,
+      "jump_flag": true
+     }
+    ],
+    "proba": 0.257,
+    "decision": false
+   },
+   "scenario_id": "S1"
+  },
+  {
+   "station_id": "2008",
+   "name": "88 - Beatrice d'Este - Cassolo",
+   "ts_utc": "2026-09-10 11:21:30+00:00",
+   "local_time": "2026-09-10 13:21",
+   "flip": false,
+   "question": "The van is nearby. Is it worth stopping at station {name}, or should it skip it?",
+   "clean": {
+    "readings": [
+     {
+      "polls_ago": 15,
+      "time": "13:06",
+      "bikes": 8,
+      "docks": 14,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 5,
+      "time": "13:16",
+      "bikes": 9,
+      "docks": 14,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 2,
+      "time": "13:19",
+      "bikes": 9,
+      "docks": 14,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 1,
+      "time": "13:20",
+      "bikes": 9,
+      "docks": 14,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 0,
+      "time": "13:21",
+      "bikes": 9,
+      "docks": 14,
+      "jump_flag": false
+     }
+    ],
+    "proba": 0.355,
+    "decision": false
+   },
+   "corrupted": {
+    "readings": [
+     {
+      "polls_ago": 15,
+      "time": "13:06",
+      "bikes": 8,
+      "docks": 14,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 5,
+      "time": "13:16",
+      "bikes": 9,
+      "docks": 14,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 2,
+      "time": "13:19",
+      "bikes": 9,
+      "docks": 14,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 1,
+      "time": "13:20",
+      "bikes": 0,
+      "docks": 23,
+      "jump_flag": true
+     },
+     {
+      "polls_ago": 0,
+      "time": "13:21",
+      "bikes": 9,
+      "docks": 14,
+      "jump_flag": true
+     }
+    ],
+    "proba": 0.262,
+    "decision": false
+   },
+   "scenario_id": "S2"
+  },
+  {
+   "station_id": "2177",
+   "name": "270 - Stelvio - Farini",
+   "ts_utc": "2026-09-17 20:30:45+00:00",
+   "local_time": "2026-09-17 22:30",
+   "flip": false,
+   "question": "We have one van left this hour. Do you recommend dispatching it to station {name}?",
+   "clean": {
+    "readings": [
+     {
+      "polls_ago": 15,
+      "time": "22:15",
+      "bikes": 9,
+      "docks": 16,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 5,
+      "time": "22:26",
+      "bikes": 9,
+      "docks": 16,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 2,
+      "time": "22:29",
+      "bikes": 9,
+      "docks": 16,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 1,
+      "time": "22:30",
+      "bikes": 9,
+      "docks": 16,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 0,
+      "time": "22:30",
+      "bikes": 9,
+      "docks": 16,
+      "jump_flag": false
+     }
+    ],
+    "proba": 0.38,
+    "decision": false
+   },
+   "corrupted": {
+    "readings": [
+     {
+      "polls_ago": 15,
+      "time": "22:15",
+      "bikes": 19,
+      "docks": 6,
+      "jump_flag": true
+     },
+     {
+      "polls_ago": 5,
+      "time": "22:26",
+      "bikes": 9,
+      "docks": 16,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 2,
+      "time": "22:29",
+      "bikes": 9,
+      "docks": 16,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 1,
+      "time": "22:30",
+      "bikes": 9,
+      "docks": 16,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 0,
+      "time": "22:30",
+      "bikes": 9,
+      "docks": 16,
+      "jump_flag": false
+     }
+    ],
+    "proba": 0.424,
+    "decision": false
+   },
+   "scenario_id": "S3"
+  },
+  {
+   "station_id": "2131",
+   "name": "238 - Govone - Borgese",
+   "ts_utc": "2026-09-09 09:28:15+00:00",
+   "local_time": "2026-09-09 11:28",
+   "flip": false,
+   "question": "Station {name}: dispatch or not?",
+   "clean": {
+    "readings": [
+     {
+      "polls_ago": 15,
+      "time": "11:12",
+      "bikes": 8,
+      "docks": 17,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 5,
+      "time": "11:23",
+      "bikes": 10,
+      "docks": 15,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 2,
+      "time": "11:26",
+      "bikes": 10,
+      "docks": 15,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 1,
+      "time": "11:27",
+      "bikes": 10,
+      "docks": 15,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 0,
+      "time": "11:28",
+      "bikes": 10,
+      "docks": 15,
+      "jump_flag": false
+     }
+    ],
+    "proba": 0.411,
+    "decision": false
+   },
+   "corrupted": {
+    "readings": [
+     {
+      "polls_ago": 15,
+      "time": "11:12",
+      "bikes": 8,
+      "docks": 17,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 5,
+      "time": "11:23",
+      "bikes": 20,
+      "docks": 5,
+      "jump_flag": true
+     },
+     {
+      "polls_ago": 2,
+      "time": "11:26",
+      "bikes": 10,
+      "docks": 15,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 1,
+      "time": "11:27",
+      "bikes": 10,
+      "docks": 15,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 0,
+      "time": "11:28",
+      "bikes": 10,
+      "docks": 15,
+      "jump_flag": false
+     }
+    ],
+    "proba": 0.381,
+    "decision": false
+   },
+   "scenario_id": "S4"
+  },
+  {
+   "station_id": "2134",
+   "name": "259 - Amendola M1",
+   "ts_utc": "2026-09-16 18:50:30+00:00",
+   "local_time": "2026-09-16 20:50",
+   "flip": true,
+   "question": "Should the rebalancing van go to station {name} now?",
+   "clean": {
+    "readings": [
+     {
+      "polls_ago": 15,
+      "time": "20:34",
+      "bikes": 19,
+      "docks": 16,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 5,
+      "time": "20:45",
+      "bikes": 19,
+      "docks": 16,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 2,
+      "time": "20:48",
+      "bikes": 19,
+      "docks": 16,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 1,
+      "time": "20:49",
+      "bikes": 19,
+      "docks": 16,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 0,
+      "time": "20:50",
+      "bikes": 19,
+      "docks": 16,
+      "jump_flag": false
+     }
+    ],
+    "proba": 0.76,
+    "decision": false
+   },
+   "corrupted": {
+    "readings": [
+     {
+      "polls_ago": 15,
+      "time": "20:34",
+      "bikes": 29,
+      "docks": 6,
+      "jump_flag": true
+     },
+     {
+      "polls_ago": 5,
+      "time": "20:45",
+      "bikes": 19,
+      "docks": 16,
+      "jump_flag": true
+     },
+     {
+      "polls_ago": 2,
+      "time": "20:48",
+      "bikes": 19,
+      "docks": 16,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 1,
+      "time": "20:49",
+      "bikes": 29,
+      "docks": 6,
+      "jump_flag": true
+     },
+     {
+      "polls_ago": 0,
+      "time": "20:50",
+      "bikes": 19,
+      "docks": 16,
+      "jump_flag": true
+     }
+    ],
+    "proba": 0.861,
+    "decision": true
+   },
+   "scenario_id": "S5"
+  },
+  {
+   "station_id": "2240",
+   "name": "372 - Soderini - Provincia di Milano",
+   "ts_utc": "2026-09-16 18:05:15+00:00",
+   "local_time": "2026-09-16 20:05",
+   "flip": true,
+   "question": "The van is nearby. Is it worth stopping at station {name}, or should it skip it?",
+   "clean": {
+    "readings": [
+     {
+      "polls_ago": 15,
+      "time": "19:50",
+      "bikes": 21,
+      "docks": 9,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 5,
+      "time": "20:00",
+      "bikes": 21,
+      "docks": 9,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 2,
+      "time": "20:03",
+      "bikes": 21,
+      "docks": 9,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 1,
+      "time": "20:04",
+      "bikes": 21,
+      "docks": 9,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 0,
+      "time": "20:05",
+      "bikes": 21,
+      "docks": 9,
+      "jump_flag": false
+     }
+    ],
+    "proba": 0.871,
+    "decision": true
+   },
+   "corrupted": {
+    "readings": [
+     {
+      "polls_ago": 15,
+      "time": "19:50",
+      "bikes": 21,
+      "docks": 9,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 5,
+      "time": "20:00",
+      "bikes": 21,
+      "docks": 9,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 2,
+      "time": "20:03",
+      "bikes": 21,
+      "docks": 9,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 1,
+      "time": "20:04",
+      "bikes": 11,
+      "docks": 19,
+      "jump_flag": true
+     },
+     {
+      "polls_ago": 0,
+      "time": "20:05",
+      "bikes": 21,
+      "docks": 9,
+      "jump_flag": true
+     }
+    ],
+    "proba": 0.806,
+    "decision": false
+   },
+   "scenario_id": "S6"
+  },
+  {
+   "station_id": "2185",
+   "name": "190 - Milizie - Tortona",
+   "ts_utc": "2026-09-16 18:04:15+00:00",
+   "local_time": "2026-09-16 20:04",
+   "flip": true,
+   "question": "We have one van left this hour. Do you recommend dispatching it to station {name}?",
+   "clean": {
+    "readings": [
+     {
+      "polls_ago": 15,
+      "time": "19:49",
+      "bikes": 15,
+      "docks": 13,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 5,
+      "time": "19:59",
+      "bikes": 15,
+      "docks": 13,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 2,
+      "time": "20:02",
+      "bikes": 15,
+      "docks": 13,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 1,
+      "time": "20:03",
+      "bikes": 15,
+      "docks": 13,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 0,
+      "time": "20:04",
+      "bikes": 15,
+      "docks": 13,
+      "jump_flag": false
+     }
+    ],
+    "proba": 0.857,
+    "decision": true
+   },
+   "corrupted": {
+    "readings": [
+     {
+      "polls_ago": 15,
+      "time": "19:49",
+      "bikes": 15,
+      "docks": 13,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 5,
+      "time": "19:59",
+      "bikes": 25,
+      "docks": 3,
+      "jump_flag": true
+     },
+     {
+      "polls_ago": 2,
+      "time": "20:02",
+      "bikes": 15,
+      "docks": 13,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 1,
+      "time": "20:03",
+      "bikes": 15,
+      "docks": 13,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 0,
+      "time": "20:04",
+      "bikes": 15,
+      "docks": 13,
+      "jump_flag": false
+     }
+    ],
+    "proba": 0.841,
+    "decision": false
+   },
+   "scenario_id": "S7"
+  },
+  {
+   "station_id": "2075",
+   "name": "156 - Arcole - Argelati",
+   "ts_utc": "2026-09-16 18:10:30+00:00",
+   "local_time": "2026-09-16 20:10",
+   "flip": true,
+   "question": "Station {name}: dispatch or not?",
+   "clean": {
+    "readings": [
+     {
+      "polls_ago": 15,
+      "time": "19:54",
+      "bikes": 29,
+      "docks": 5,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 5,
+      "time": "20:05",
+      "bikes": 25,
+      "docks": 9,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 2,
+      "time": "20:08",
+      "bikes": 25,
+      "docks": 9,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 1,
+      "time": "20:09",
+      "bikes": 25,
+      "docks": 9,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 0,
+      "time": "20:10",
+      "bikes": 25,
+      "docks": 9,
+      "jump_flag": false
+     }
+    ],
+    "proba": 0.849,
+    "decision": false
+   },
+   "corrupted": {
+    "readings": [
+     {
+      "polls_ago": 15,
+      "time": "19:54",
+      "bikes": 29,
+      "docks": 5,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 5,
+      "time": "20:05",
+      "bikes": 15,
+      "docks": 19,
+      "jump_flag": true
+     },
+     {
+      "polls_ago": 2,
+      "time": "20:08",
+      "bikes": 25,
+      "docks": 9,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 1,
+      "time": "20:09",
+      "bikes": 25,
+      "docks": 9,
+      "jump_flag": false
+     },
+     {
+      "polls_ago": 0,
+      "time": "20:10",
+      "bikes": 25,
+      "docks": 9,
+      "jump_flag": false
+     }
+    ],
+    "proba": 0.864,
+    "decision": true
+   },
+   "scenario_id": "S8"
+  }
+ ]
+}
