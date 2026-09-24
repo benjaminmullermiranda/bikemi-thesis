@@ -6,6 +6,7 @@
 data/raw/*
 data/processed/*
 data/injected/*
+data/tmp/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/injected/.gitkeep
@@ -13,6 +14,10 @@ data/console.log
 data/*_run.log
 data/*_run.err.log
 data/backup.log
+
+# T37 (04_dose_response_analysis.py) per-experiment worker cache/results -
+# scratch, superseded by the aggregated reports/t11_dose_response.csv
+reports/t11_partial/*
 
 # Python
 __pycache__/
@@ -24,3 +29,8 @@ venv/
 # Environment / secrets
 .env
 .DS_Store
+
+# private correspondence / session notes - never publish (repo origin is public)
+docs/outbox/
+# graphify cache
+graphify-out/

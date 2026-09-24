@@ -62,6 +62,5 @@ Chapter 2 positions the thesis against the literature and states the gap it
 fills. Chapter 3 describes the BikeMi case study and the data collected.
 Chapter 4 specifies the frozen methodology (taxonomy, injection design, decision
 pipeline, cost model, and analysis plan), fixed before any injected data was
-examined. Results, discussion, and conclusions follow once collection closes and
-the pipeline is re-run against the final dataset; they are out of scope here by
-design.
+examined. Chapter 5 reports the results of running that frozen plan against the
+final dataset, discusses them, and concludes.

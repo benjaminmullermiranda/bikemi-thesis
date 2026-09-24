@@ -1,19 +1,16 @@
 """T14 (cont.): H3, the safeguard-recoverability test the outline promises
 (docs/thesis_outline.md S3) - built 2026-08-12, same pattern as 05's H1/H2.
-Prepared and checked against the CURRENT partial substrate per Russo's
-2026-08-11 email item 3 ("prepare and check the code for the statistical
-tests on sample results, so the analysis is ready the moment the real data
-arrives") - this validates the test code runs correctly end to end, not the
-registered result.
+Registered result: run 2026-09-24 on reports/t11_dose_response.csv from the
+certified multi-day substrate, 12 test periods only.
 
 H3 (Bounded recoverability, classes 1-5): "the safeguard layer detects most
 injected anomalies ... and recovers a substantial share of their Delta cost."
 Primary: bootstrap percentile CI on the paired difference (delta_cost -
 delta_cost_recovered) per class - i.e. how much of the corruption's cost the
 safeguard actually recovers, with a CI, not just a point estimate.
-Secondary: Wilcoxon signed-rank on the same pairs (per the outline: at n=5 its
-minimum two-sided p is 0.0625, unable to reach alpha=0.05 - reported for
-completeness, never treated as the primary evidence).
+Secondary: Wilcoxon signed-rank on the same pairs, pooled per class (n=20, so
+unlike n=5 it can reach alpha=0.05) - reported for completeness, never treated
+as the primary evidence.
 
 Scope, matching notebook 04's own established recovery-scoring boundaries:
 - class1_dropout: no recovery mechanism (rows are REMOVED, nothing to carry
@@ -26,12 +23,13 @@ Scope, matching notebook 04's own established recovery-scoring boundaries:
   "unrecoverable floor" per the outline, not a class H3 tests for recovery.
 - Tested classes: class2_frozen, class4_capacity, class5_jump - the three with
   an actual carry-forward recovery mechanism and a saved delta_cost_recovered.
+  In practice only class5 has a cost gap to recover: class4's detector cannot
+  fire on this data (04's apply_safeguard - vehicle-type sum is synthetic), and
+  class2's corruption costs 0, so its nonzero "recovered" value is the
+  safeguard changing baseline decisions, not repairing damage.
 
-Pairing granularity: pooled across the full frozen intensity grid per class (4
-intensities x 5 seeds = 20 pairs), the SAME pooling convention notebook 04's
-own bootstrap CI on delta_cost already uses ("pooled across 4 intensities x 5
-seeds = 20 draws") - a documented choice, not an attempt to dodge the n=5
-power problem the outline flags for Wilcoxon specifically.
+Pairing granularity (updated 2026-09-24): bootstrap CI per (class, intensity),
+n=5 seeds each - pooling the 4 intensities measured the spread between doses.
 """
 import sys
 from pathlib import Path
@@ -66,22 +64,27 @@ def run_h3(dose_response_csv="reports/t11_dose_response.csv"):
     bootstrap_rows, wilcoxon_rows = [], []
 
     for class_name in TESTED_CLASSES:
-        sub = df.loc[df["class"] == class_name, ["delta_cost", "delta_cost_recovered"]].dropna()
+        sub = df.loc[df["class"] == class_name, ["intensity_idx", "delta_cost", "delta_cost_recovered"]].dropna()
         pre = sub["delta_cost"].to_numpy()
         post = sub["delta_cost_recovered"].to_numpy()
-        recovered = pre - post  # amount of cost the safeguard recovered, per pair
+        print(f"\n{class_name}: n={len(sub)} pairs")
 
-        boot_means = [rng.choice(recovered, size=len(recovered), replace=True).mean() for _ in range(n_boot)]
-        lo, hi = np.percentile(boot_means, [2.5, 97.5])
-        bootstrap_rows.append({
-            "class": class_name, "n_pairs": len(recovered),
-            "mean_delta_cost_pre": pre.mean(), "mean_delta_cost_post": post.mean(),
-            "mean_recovered": recovered.mean(), "ci_low": lo, "ci_high": hi,
-        })
-        print(f"\n{class_name}: n={len(recovered)} pairs")
-        print(f"  pre-safeguard delta_cost  mean={pre.mean():10.3f}")
-        print(f"  post-safeguard delta_cost mean={post.mean():10.3f}")
-        print(f"  recovered (pre-post)      mean={recovered.mean():10.3f}  95% CI [{lo:10.3f}, {hi:10.3f}]")
+        # primary: paired bootstrap CI per (class, intensity), n=5 seeds each (updated
+        # 2026-09-24: pooling the 4 intensities made the CI reflect the spread BETWEEN
+        # doses, not sampling error - Russo's effect-size-and-CI-per-condition caveat)
+        for intensity_idx, g in sub.groupby("intensity_idx"):
+            gpre, gpost = g["delta_cost"].to_numpy(), g["delta_cost_recovered"].to_numpy()
+            recovered = gpre - gpost  # amount of cost the safeguard recovered, per pair
+            boot_means = [rng.choice(recovered, size=len(recovered), replace=True).mean() for _ in range(n_boot)]
+            lo, hi = np.percentile(boot_means, [2.5, 97.5])
+            share = recovered.sum() / gpre.sum() if gpre.sum() else np.nan
+            bootstrap_rows.append({
+                "class": class_name, "intensity_idx": intensity_idx, "n_pairs": len(recovered),
+                "mean_delta_cost_pre": gpre.mean(), "mean_delta_cost_post": gpost.mean(),
+                "mean_recovered": recovered.mean(), "ci_low": lo, "ci_high": hi, "recovered_share": share,
+            })
+            print(f"  i{intensity_idx}: pre={gpre.mean():9.2f} post={gpost.mean():9.2f} "
+                  f"recovered={recovered.mean():9.2f} 95% CI [{lo:9.2f}, {hi:9.2f}] share={share:.3f}")
 
         if np.allclose(pre, post):
             # e.g. class2_frozen/class4_capacity on the current substrate: delta_cost
@@ -104,9 +107,6 @@ def run_h3(dose_response_csv="reports/t11_dose_response.csv"):
     bootstrap_df.to_csv(REPORTS_DIR / "t14_h3_bootstrap_ci.csv", index=False)
     wilcoxon_df.to_csv(REPORTS_DIR / "t14_h3_wilcoxon_result.csv", index=False)
     print(f"\nSaved to reports/t14_h3_bootstrap_ci.csv, reports/t14_h3_wilcoxon_result.csv")
-    print("\nCurrent partial substrate (POC-level, not final) - this validates the test "
-          "code runs correctly end to end. Re-run once, unmodified, against the certified "
-          "substrate at collection close for the registered result.")
     return bootstrap_df, wilcoxon_df
 
 

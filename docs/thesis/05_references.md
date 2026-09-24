@@ -1,52 +1,63 @@
 # References
 
-<!-- STATUS: skeleton only, not submission-ready. Every entry below is missing
-     at least one required APA field (full author list, exact title, pages,
-     and/or DOI) that is not stated anywhere in the current chapter text. I am
-     not fabricating author names, titles, or DOIs I cannot verify — filling
-     these gaps requires pulling up each source (five were sent directly by
-     Prof. Russo by email on 2026-08-05; the rest were found independently).
-     Every entry here is cited somewhere in Chapters 1-4; nothing appears here
-     that isn't cited in the text, and vice versa, per the university's
-     citation rule (§1). Do not submit until every [VERIFY] tag below is
-     resolved against the original source. -->
+<!-- STATUS: verified 19 September 2026 against the publisher or arXiv landing
+     page of each source. Author lists, titles, volumes, pages and DOIs below
+     were copied from those pages, not reconstructed from memory. Every entry
+     here is cited in Chapters 1-4, and every source cited in Chapters 1-4
+     appears here, per the programme's citation rule (guidelines §1).
+     Remaining known gap: the SmartFlow preprint's arXiv listing gives a
+     December 2025 submission date under a 2601 identifier; it is cited by
+     identifier, which is what APA asks for with preprints. -->
 
-Breck, E., et al. (2019). Data validation for machine learning. *Proceedings of
-  SysML/MLSys 2019.* [VERIFY: full author list, page range]
+Breck, E., Zinkevich, M., Polyzotis, N., Whang, S., & Roy, S. (2019). Data
+  validation for machine learning. *Proceedings of Machine Learning and
+  Systems, 1*, 334–347.
 
-Budach, L., et al. (2022). The effects of data quality on machine learning
-  performance (preprint). *arXiv:2207.14529.* [VERIFY: full author list; check
-  whether the published version (Mohammed et al., 2025, *Information Systems*,
-  132) should be cited instead of, or alongside, this preprint]
+Gammelli, D., Wang, Y., Prak, D., Rodrigues, F., Minner, S., & Pereira, F. C.
+  (2022). Predictive and prescriptive performance of bike-sharing demand
+  forecasts for inventory management. *Transportation Research Part C: Emerging
+  Technologies, 138*, 103571. https://doi.org/10.1016/j.trc.2022.103571
+
+Jiang, X., Zhang, H., Sha, M., Jiao, Z., He, L., Zhang, J., & Qi, W. (2025).
+  *RideAgent: An LLM-enhanced optimization framework for automated taxi fleet
+  operations* (arXiv preprint No. 2505.06608). arXiv.
+  https://arxiv.org/abs/2505.06608
 
 Kapoor, S., & Narayanan, A. (2023). Leakage and the reproducibility crisis in
-  ML-based science. *Patterns, 4*(9). [VERIFY: page range, DOI]
+  machine-learning-based science. *Patterns, 4*(9), 100804.
+  https://doi.org/10.1016/j.patter.2023.100804
 
-Polyzotis, N., et al. (2017). Data management challenges in production
-  machine learning. *Proceedings of the 2017 ACM International Conference on
-  Management of Data (SIGMOD '17).* [VERIFY: full author list, page range]
+Kirichenko, P., Ibrahim, M., Chaudhuri, K., & Bell, S. J. (2025).
+  *AbstentionBench: Reasoning LLMs fail on unanswerable questions* (arXiv
+  preprint No. 2506.09038). arXiv. https://arxiv.org/abs/2506.09038
 
-Sambasivan, N., et al. (2021). "Everyone wants to do the model work, not the
-  data work": Data cascades in high-stakes AI. *Proceedings of the 2021 CHI
-  Conference on Human Factors in Computing Systems.* [VERIFY: full author
-  list, exact title, page range, DOI]
+Liu, X., Zhang, Y. E., Kasprova, V., Rabbani, P., Zahraei, P. S., Zhang, T.,
+  Ebrahimpour-Boroojeny, A., & Chandrasekaran, V. (2026). *AgentAbstain: Do LLM
+  agents know when not to act?* (arXiv preprint No. 2607.10059). arXiv.
+  https://arxiv.org/abs/2607.10059
 
-Schelter, S., et al. (2018). Automating large-scale data quality
-  verification. *Proceedings of the VLDB Endowment, 11*(12). [VERIFY: full
-  author list, page range]
+Mohammed, S., Budach, L., Feuerpfeil, M., Ihde, N., Nathansen, A., Noack, N. S.,
+  Patzlaff, H., Naumann, F., & Harmouch, H. (2025). The effects of data quality
+  on machine learning performance on tabular data. *Information Systems, 132*,
+  102549. https://doi.org/10.1016/j.is.2025.102549
 
-Gammelli, D., et al. (2022). [Title not yet confirmed in source text].
-  *Transportation Research Part C: Emerging Technologies, 138.* [VERIFY: exact
-  title, full author list, page range, DOI]
+Polyzotis, N., Roy, S., Whang, S. E., & Zinkevich, M. (2017). Data management
+  challenges in production machine learning. In *Proceedings of the 2017 ACM
+  International Conference on Management of Data (SIGMOD '17)* (pp. 1723–1726).
+  Association for Computing Machinery. https://doi.org/10.1145/3035918.3054782
 
-[AbstentionBench] (2025 or 2026). [Author(s) and exact title not yet confirmed].
-  *arXiv:2506.09038.* [VERIFY: authors, title]
+Sambasivan, N., Kapania, S., Highfill, H., Akrong, D., Paritosh, P., & Aroyo, L.
+  (2021). "Everyone wants to do the model work, not the data work": Data
+  cascades in high-stakes AI. In *Proceedings of the 2021 CHI Conference on
+  Human Factors in Computing Systems (CHI '21)* (Article 39, pp. 1–15).
+  Association for Computing Machinery. https://doi.org/10.1145/3411764.3445518
 
-[AgentAbstain] (2026). [Author(s) and exact title not yet confirmed].
-  *arXiv:2607.10059.* [VERIFY: authors, title]
+Schelter, S., Lange, D., Schmidt, P., Celikel, M., Biessmann, F., & Grafberger,
+  A. (2018). Automating large-scale data quality verification. *Proceedings of
+  the VLDB Endowment, 11*(12), 1781–1794.
+  https://doi.org/10.14778/3229863.3229867
 
-[RideAgent] (2025). [Author(s) and exact title not yet confirmed].
-  *arXiv:2505.06608.* [VERIFY: authors, title]
-
-[SmartFlow] (2026). [Author(s) and exact title not yet confirmed].
-  *arXiv:2601.00868.* [VERIFY: authors, title]
+Sreevatsa K, A., Raveendran, A. K., Mani, J. K., Shigli, P. G., Rangadore, R.,
+  Darapaneni, N., & Paduri, A. R. (2025). *SmartFlow: Reinforcement learning and
+  agentic AI for bike-sharing optimisation* (arXiv preprint No. 2601.00868).
+  arXiv. https://arxiv.org/abs/2601.00868

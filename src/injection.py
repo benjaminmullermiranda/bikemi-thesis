@@ -123,8 +123,14 @@ def inject_value_jump(df, magnitude, rate, seed):
     capacity = out["num_bikes_available"] + out["num_docks_available"]
     jumped_bikes = (out["num_bikes_available"] + jump).clip(lower=0)
     jumped_bikes = np.minimum(jumped_bikes, capacity)
-    out.loc[hit, "num_bikes_available"] = jumped_bikes[hit]
-    out.loc[hit, "num_docks_available"] = (capacity - out["num_bikes_available"])[hit]
+    # explicit cast: on a downcast (e.g. int8) source column, the clip/minimum
+    # arithmetic above promotes to a wider dtype - assigning that back into the
+    # narrower column is a deprecated implicit downcast (FutureWarning today,
+    # a hard error in a future pandas). Values are unchanged either way.
+    bikes_dtype = out["num_bikes_available"].dtype
+    out.loc[hit, "num_bikes_available"] = jumped_bikes[hit].astype(bikes_dtype)
+    docks_dtype = out["num_docks_available"].dtype
+    out.loc[hit, "num_docks_available"] = (capacity - out["num_bikes_available"])[hit].astype(docks_dtype)
     return out
 
 

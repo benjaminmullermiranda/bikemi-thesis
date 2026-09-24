@@ -7,6 +7,15 @@ it - tuple-object overhead alone is ~650-700MB, right at this laptop's free
 RAM. Flushing every `batch_size` files into a compact columnar DataFrame
 keeps peak memory to one batch's worth of tuples plus the (much smaller)
 concatenated column buffers, not the full row count as Python objects.
+
+2026-09-22: the collector kept running past the 2026-08-11 fix's working
+size (10-16k files) to 24k+, and batching alone wasn't enough anymore -
+each flushed batch was still four Python-object columns (interned str,
+Timestamp, int, int), and ALL batches stay resident until the final concat,
+so peak memory still scaled with the FULL collection, not one batch. Each
+batch is now downcast to compact dtypes (category/datetime64/int16) right
+after construction - same values, ~10x smaller in memory - which is what
+actually bounds peak memory as the collection keeps growing.
 """
 import sys
 import glob
@@ -40,8 +49,50 @@ def load_snapshots(pattern="data/raw/*.json.gz", batch_size=1000):
             # every file - without interning, each row allocates a fresh string object
             rows.append((sys.intern(str(s["station_id"])), ts, s["num_bikes_available"], s["num_docks_available"]))
         if len(rows) >= batch_size * 320 or i == len(files) - 1:
-            batches.append(pd.DataFrame(rows, columns=["station_id", "ts", "num_bikes_available", "num_docks_available"]))
+            batch_df = pd.DataFrame(rows, columns=["station_id", "ts", "num_bikes_available", "num_docks_available"])
+            batch_df["station_id"] = batch_df["station_id"].astype("category")
+            batch_df["ts"] = pd.to_datetime(batch_df["ts"], utc=True)
+            batch_df["num_bikes_available"] = pd.to_numeric(batch_df["num_bikes_available"], downcast="integer")
+            batch_df["num_docks_available"] = pd.to_numeric(batch_df["num_docks_available"], downcast="integer")
+            batches.append(batch_df)
             rows = []
     if corrupt:
         print(f"WARNING: skipped {corrupt} unreadable/corrupt raw file(s)")
     return pd.concat(batches, ignore_index=True, copy=False)
+
+
+def demo():
+    """Verifies the dtype downcast (category/datetime64/int) preserves values
+    and that batching (batch_size=1, forcing 2 flushes) doesn't drop/duplicate
+    rows or misalign the (station_id, ts) -> value mapping."""
+    import os
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as d:
+        polls = [
+            (1700000000, [(1, 5, 10), (2, 3, 12)]),
+            (1700000060, [(1, 4, 11), (2, 3, 12)]),
+        ]
+        for i, (last_updated, stations) in enumerate(polls):
+            payload = {
+                "last_updated": last_updated,
+                "data": {"stations": [
+                    {"station_id": sid, "num_bikes_available": b, "num_docks_available": k}
+                    for sid, b, k in stations
+                ]},
+            }
+            with gzip.open(os.path.join(d, f"{i}.json.gz"), "wt", encoding="utf-8") as f:
+                json.dump(payload, f)
+
+        df = load_snapshots(pattern=os.path.join(d, "*.json.gz"), batch_size=1)
+        assert len(df) == 4
+        assert str(df["station_id"].dtype) == "category"
+        assert str(df["ts"].dtype).startswith("datetime64")
+        assert df["num_bikes_available"].dtype.kind == "i" and df["num_docks_available"].dtype.kind == "i"
+        row = df[(df["station_id"] == "1") & (df["ts"] == pd.Timestamp(1700000060, unit="s", tz="UTC"))]
+        assert row["num_bikes_available"].iloc[0] == 4 and row["num_docks_available"].iloc[0] == 11
+    print("data_io.demo: OK")
+
+
+if __name__ == "__main__":
+    demo()

@@ -25,8 +25,9 @@ for recovery.
 
 ## 4.2 Injection design and leakage protocol
 
-Faults are injected at serving time only, into the certified substrate, never at
-training time. The grid crosses 6 classes × 4 intensities × 5 seeds = 120
+Faults are injected at serving time only, never at training time, and into the
+evaluation periods of the multi-day substrate (§3.6) rather than into a single
+continuous block. The grid crosses 6 classes × 4 intensities × 5 seeds = 120
 corrupted datasets:
 
 | Class | Intensity levels |
@@ -39,9 +40,17 @@ corrupted datasets:
 | 6 Silent | offset k = 1 · 2 · 4 · 8 (share 0.05) |
 
 Ceilings are sized to the substrate length available when the grid was fixed
-(30 July), before any dose-response result existed, and are not revised based on
-later results. Every corrupted dataset carries an explicit modification label
-(NLOD §5–6): synthetic data is never presented as observed BikeMi data.
+(30 July). They survive the move to a multi-day substrate unchanged: the longest
+injected fault lasts one hour and the shortest retained period is 2.25 hours, so
+every intensity level still fits inside every period. Each injection is placed
+within one period and never spans two, for the same reason no lag does (§4.3). A dry run on that day's shorter, since-superseded clean segment
+confirmed the rescaled grid produced a mechanically sound dose-response shape
+and surfaced two real injection bugs, which were fixed as code corrections,
+not tuned to change the outcome. The grid is not revised based on the final
+substrate's results: that substrate was not yet certified when the grid was
+fixed, and has not been evaluated against it since. Every corrupted dataset
+carries an explicit modification label (NLOD §5–6): synthetic data is never
+presented as observed BikeMi data.
 
 Three leakage safeguards are fixed in advance, following Kapoor & Narayanan
 (2023, §2): chronological splits only, never shuffled; the model trained once on
@@ -61,7 +70,9 @@ from lagged availability, hour, weekday, and basic weather. Kept deliberately
 simple: the thesis studies how data quality affects the pipeline, not how well
 it forecasts. A gradient-boosted model is a robustness check only, not the
 primary forecaster. Lags spanning a real collection gap are invalidated, not
-silently treated as short.
+silently treated as short, and the same rule makes the boundary between two
+daily periods impassable: no lag and no forecast horizon reaches from one day's
+period into the next (§3.6).
 
 **Decision rule:** dispatch iff P̂ ≥ τ. τ is calibrated once, on validation data
 only, minimising total cost (§4.5) under the mid cost profile, then frozen, so
@@ -81,12 +92,20 @@ floor, not a missing measurement.
 
 ## 4.5 Model, cost model, and threshold (frozen)
 
-The model (`src/features.py`, `src/model.py`) is trained on the full,
-gap-tolerant collection (not the smaller substrate, which is reserved for
-injection), with a chronological split (train ≤60th percentile, validation
-(60–80th], test (80th–end], never shuffled), saved once to
-`models/frozen_config.json` so it cannot silently redraw later against a larger
-collection.
+The model (`src/features.py`, `src/model.py`) is trained with the frozen
+chronological split (train ≤60th percentile, validation (60–80th], test
+(80th–end], never shuffled), saved once to `models/frozen_config.json` so it
+cannot silently redraw later against a larger collection.
+
+Moving to a multi-day substrate forces one clarification of this procedure,
+made before any injected data from the new substrate was examined and reported
+here rather than applied quietly. The split percentiles are now cut on whole
+periods instead of on rows, so a period belongs entirely to training,
+validation, or testing. A row-level cut would place the last training rows'
+two-hour label horizon inside the validation window, which is precisely the
+leakage the protocol in §4.2 exists to prevent. Injection and evaluation then
+run on the test periods only; the training and validation periods are never
+corrupted.
 
 Cost has two components: **C_penalty** (demand side) = critical station-hours ×
 expected failed pickups × (1−σ) × revenue per ride; **C_transit** (supply side) =
@@ -106,9 +125,11 @@ rather than fixing a point value.
 
 Two numbers here (the split boundaries and τ) were computed once, on 30 July,
 before the freeze, on a partial collection. They are current interim values,
-produced by the frozen procedure, and will be recomputed exactly once more at
-collection close; that single recomputation, not a comparison of candidates,
-becomes the final number.
+produced by the frozen procedure. Collection has since closed (§3.4) and the
+substrate has moved from a single segment to the multi-day design of §3.6; the
+split and τ will be recomputed exactly once more, on the final multi-day
+substrate, by the exact procedure above, and that single recomputation, not a
+comparison of candidates, becomes the final number.
 
 ## 4.6 Agent comparison (descoped)
 
@@ -129,8 +150,10 @@ scale, effect sizes with confidence intervals are the primary evidence
 throughout.
 
 - **H1 (Occurrence).** Anomalies occur at non-negligible, uneven rates across
-  stations and hours. *Test:* negative-binomial GLM (rare, overdispersed counts
-  rule out χ²), likelihood-ratio test for unevenness.
+  stations, hours, and days. *Test:* negative-binomial GLM (rare, overdispersed
+  counts rule out χ²), likelihood-ratio test for unevenness. The multi-day
+  substrate adds day as a grouping factor, which a single-day substrate could
+  not have supported.
 - **H2 (Non-linear, class-dependent propagation).** Decision-flip rate and Δcost
   grow non-linearly with intensity and differ by class. *Test:* class ×
   intensity interaction model on Δcost; permutation test if diagnostics fail at
@@ -144,5 +167,7 @@ H4 (agent quality-awareness) was pre-registered alongside SO3 (§4.6) and is
 descoped for the same reason; it is not tested in this thesis.
 
 This plan, with the frozen injection design, pipeline, and cost model above, is
-the full pre-registered specification the results chapter will be evaluated
-against once the collection window closes.
+the full pre-registered specification the results chapter is evaluated against.
+Collection has closed (§3.4); per the supervisor's instruction of 14 September
+2026, the census in §3.6 was sent for review before the injection grid was run,
+and the experiments proceed only once that basis is confirmed sufficient.

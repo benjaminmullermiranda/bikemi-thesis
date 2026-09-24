@@ -1,4 +1,4 @@
 class,n_pairs,statistic,p_value,note
-class2_frozen,20,0.0,7.74421643104407e-06,
-class4_capacity,20,,,degenerate: pre==post for every pair
-class5_jump,20,55.0,0.058759147482278846,
+class2_frozen,5,0.0,7.74421643104407e-06,
+class4_capacity,5,,,degenerate: pre==post for every pair
+class5_jump,5,0.0,1.9073486328125e-06,

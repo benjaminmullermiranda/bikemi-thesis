@@ -1,0 +1,44 @@
+{
+  "generated": "2026-09-19 14:40:51.219654+00:00",
+  "rule": {
+    "max_gap_s": 120,
+    "min_period_s": 8100,
+    "critical_def": "num_bikes_available <= 2 or num_docks_available <= 2",
+    "horizon_steps": 120,
+    "poll_seconds": 60
+  },
+  "collection_window": {
+    "first_poll": "2026-07-24 09:45:45+00:00",
+    "last_poll": "2026-09-19 14:12:00+00:00"
+  },
+  "segments_found": 211,
+  "periods_retained": 62,
+  "periods_dropped_too_short": 149,
+  "distinct_days": 36,
+  "days_with_multiple_periods": 21,
+  "duration_h": {
+    "total": 251.48,
+    "mean": 4.06,
+    "median": 3.69,
+    "min": 2.27,
+    "max": 8.53
+  },
+  "per_day_total_h": {
+    "mean": 6.99,
+    "min": 2.29,
+    "max": 15.52
+  },
+  "observations": 4734225,
+  "observations_clean": 4661334,
+  "jump_rows_excluded": 72891,
+  "frozen_rows_flagged_kept": 1560435,
+  "observations_forecastable": 1953928,
+  "critical_observations": 879008,
+  "critical_share_of_observations": 0.1886,
+  "critical_station_hours": 15167.3,
+  "critical_station_hours_naive": 14650.1,
+  "critical_episodes": 9682,
+  "stations_ever_critical": 319,
+  "label_positive": 372702,
+  "label_positive_rate": 0.1907
+}

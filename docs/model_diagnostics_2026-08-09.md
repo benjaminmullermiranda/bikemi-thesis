@@ -100,7 +100,7 @@ fixed.
 
 ## Supporting artifacts
 
-- `reports/t15_clean_phat_vector.csv` - full P-hat vector, 72,092 rows
+- `archive/t15_clean_phat_vector.csv` (moved 2026-09-24, superseded model) - full P-hat vector, 72,092 rows
   (`row_id, station_id, timestamp, p_hat, y_true, decision_clean`).
 - V1-V4 diagnostic numbers and the corrected V3 methodology (originally tested current-state
   stockout/dockfull, which is near-tautological given lag1 - fixed to use the same 2h-ahead

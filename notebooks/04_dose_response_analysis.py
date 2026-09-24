@@ -1,5 +1,6 @@
 """T11: full dose-response analysis. Runs the frozen model+tau (T8/T9) against
-all 120 injected datasets (T7), computing per (class, intensity, seed):
+all 120 injected datasets (T7), scored on the 12 frozen TEST periods only
+(methodology §4.5; 07's test_period_mask), computing per (class, intensity, seed):
 decision-flip rate, Delta-cost, and - for classes with a T6 detector - a
 safeguard recovery rate. Aggregates to per-class dose-response curves with
 bootstrap CIs (docs/thesis_outline.md H2/H3).
@@ -27,6 +28,7 @@ definitional "unrecoverable floor" per the outline, not computed.
 import sys
 import json
 import glob
+import subprocess
 from pathlib import Path
 
 import joblib
@@ -36,7 +38,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.features import build_features, fetch_weather
 from src.model import predict_critical
-from src.costs import policy_cost, decision_flip_rate
+from src.costs import policy_cost
 from src.validation import (
     detect_station_dropout, detect_frozen_counter,
     detect_capacity_inconsistency, detect_implausible_jump,
@@ -66,6 +68,13 @@ def score(model, config, df, weather=None):
     feat = build_features(df, weather=weather).dropna(subset=feature_cols)
     feat["proba"] = predict_critical(model, feat[feature_cols])
     feat["decision"] = feat["proba"] >= config["tau"]
+    # float32, not float64: this machine has very little free RAM (confirmed
+    # 2026-09-22 - an OOM on the very first merge, allocating 360MiB just to
+    # consolidate one score()'s float64 columns at 4.66M-row scale) and score()
+    # runs 120+ times per T37 pass. Precision loss is irrelevant here - proba
+    # is thresholded against tau, never compared bit-exactly.
+    float_cols = feat.select_dtypes(include="float64").columns
+    feat[float_cols] = feat[float_cols].astype("float32")
     return feat
 
 
@@ -116,101 +125,273 @@ def apply_safeguard(corrupted_df, class_name):
     return recovered
 
 
-def evaluate_experiment(model, config, clean_feat, exp_path, weather):
+EMPTY_SCORED = pd.DataFrame(columns=["station_id", "ts", "proba", "decision"])
+
+
+def _cost_accum():
+    return {"c_penalty": 0.0, "c_transit": 0.0, "total": 0.0, "n_dispatches": 0}
+
+
+def _add_cost(accum, cost):
+    for k in accum:
+        accum[k] += cost[k]
+
+
+def evaluate_experiment(model, config, clean_feat_cache_dir, period_bounds, exp_path, weather):
+    """Processes one period at a time instead of scoring the full ~4.66M-row
+    substrate at once (2026-09-22: this machine has very little free RAM - see
+    docs/handoff.md - and the whole-substrate approach OOM'd even after
+    float32/gc mitigations). Clean features are scored ONCE per period by the
+    orchestrator (build_worker_cache -> build_clean_feat_cache) and read back
+    from a small per-period parquet here, not recomputed per experiment - the
+    120 workers only ever build_features() the corrupted/recovered side.
+
+    This also fixes a second, independent bug: build_features() sorts by
+    (station_id, ts), so scoring the WHOLE multi-day substrate at once put a
+    station's rows from different, non-adjacent periods next to each other in
+    the merged frame - count_dispatch_episodes (src/costs.py) could then
+    silently stitch a "dispatch episode" across the multi-day gap between two
+    periods, since it only checks station-id adjacency, not time contiguity.
+    Processing strictly one period at a time makes that structurally
+    impossible: each policy_cost() call only ever sees one period's rows.
+
+    Ground truth for cost/flip evaluation is always the certified clean
+    substrate's own labels - matching T4's original principle: corruption
+    changes what the model SEES, never the true outcome.
+    """
     meta = json.loads(exp_path.with_suffix(".json").read_text())
     class_name = meta["class"]
     corrupted_df = pd.read_parquet(exp_path)
 
-    corrupted_feat = score(model, config, corrupted_df, weather=weather)
-    # LEFT join, not inner: class1_dropout REMOVES rows, and an inner join would
-    # silently exclude exactly those rows from evaluation - structurally hiding
-    # dropout's entire effect (no data -> no dispatch decision is the real,
-    # meaningful consequence, not something to drop from the comparison).
-    merged = clean_feat.merge(
-        corrupted_feat[["station_id", "ts", "proba", "decision"]],
-        on=["station_id", "ts"], suffixes=("_clean", "_corrupted"), how="left",
-    )
-    if len(merged) == 0:
-        return None
-    missing_in_corrupted = merged["decision_corrupted"].isna()
-    merged["decision_corrupted"] = merged["decision_corrupted"].astype(object).fillna(False).astype(bool)  # no data -> no dispatch possible
+    do_recovery = class_name in RECOVERABLE_CLASSES and class_name != "class1_dropout"
 
-    clean_cost = policy_cost(merged["decision_clean"], merged["label"], station_id=merged["station_id"])
-    flip_rate = decision_flip_rate(merged["decision_clean"], merged["decision_corrupted"])
-    # forecast_error only meaningful where a corrupted probability actually exists
-    forecast_error = float((merged.loc[~missing_in_corrupted, "proba_corrupted"]
-                             - merged.loc[~missing_in_corrupted, "proba_clean"]).abs().mean())
-
-    if class_name == "class6_silent":
+    is_silent = class_name == "class6_silent"
+    true_label_lookup = None
+    if is_silent:
         # feed-invisible by design: num_bikes_available never changes, so the model's
-        # decisions/proba are IDENTICAL to clean (flip_rate/forecast_error are correctly
-        # 0, not a bug) - the real cost is hidden, only visible via true_available (the
-        # parallel ground-truth column inject_silent_offset adds). Build a "true_label"
-        # the same way build_features builds label, but from true_available instead of
-        # num_bikes_available, then cost the SAME (deceived) decisions against reality.
+        # decisions/proba are IDENTICAL to clean - the real cost is hidden, only visible
+        # via true_available (the parallel ground-truth column inject_silent_offset adds).
+        # Cheap column ops on raw ints, not a build_features() call - fine at full scale.
         HORIZON_STEPS = 120
         cdf = corrupted_df.sort_values(["station_id", "ts"]).reset_index(drop=True)
         cdf["true_critical"] = (cdf["true_available"] <= 2) | (cdf["num_docks_available"] <= 2)
         cdf["true_label"] = cdf.groupby("station_id", sort=False)["true_critical"].shift(-HORIZON_STEPS)
-        merged = merged.merge(cdf[["station_id", "ts", "true_label"]], on=["station_id", "ts"], how="left")
-        merged = merged.dropna(subset=["true_label"])
-        corrupted_cost = policy_cost(merged["decision_corrupted"], merged["true_label"], station_id=merged["station_id"])
-        clean_cost = policy_cost(merged["decision_clean"], merged["label"], station_id=merged["station_id"])
-    else:
-        corrupted_cost = policy_cost(merged["decision_corrupted"], merged["label"], station_id=merged["station_id"])
+        true_label_lookup = cdf[["station_id", "ts", "true_label"]]
+        del cdf
 
+    total_rows = total_flips = n_err = n_corrupted_rows = 0
+    sum_abs_err = 0.0
+    clean_cost = _cost_accum()
+    corrupted_cost = _cost_accum()
+    recovered_cost = _cost_accum() if do_recovery else None
+
+    for p in period_bounds.itertuples():
+        cache_path = clean_feat_cache_dir / f"{p.period_id}.parquet"
+        if not cache_path.exists():
+            continue
+        clean_feat_p = pd.read_parquet(cache_path)
+        if len(clean_feat_p) == 0:
+            continue
+
+        corrupted_slice = corrupted_df.loc[(corrupted_df["ts"] >= p.start) & (corrupted_df["ts"] <= p.end)]
+        corrupted_feat_p = score(model, config, corrupted_slice, weather=weather) if len(corrupted_slice) else EMPTY_SCORED
+
+        # LEFT join, not inner: class1_dropout REMOVES rows, and an inner join would
+        # silently exclude exactly those rows from evaluation - structurally hiding
+        # dropout's entire effect (no data -> no dispatch decision is the real,
+        # meaningful consequence, not something to drop from the comparison).
+        merged = clean_feat_p.merge(
+            corrupted_feat_p[["station_id", "ts", "proba", "decision"]],
+            on=["station_id", "ts"], suffixes=("_clean", "_corrupted"), how="left",
+        )
+        if len(merged) == 0:
+            continue
+        # Score ONLY rows with a real outcome, for EVERY class (fixed 2026-09-24). The last
+        # 2h of each period has no label (~54% of rows); policy_cost casts None -> False, so
+        # classes 1-5 used to score those rows as "not critical" while class 6 dropped them -
+        # Delta-cost and flip_rate were then computed on different row populations per class.
+        merged = merged.dropna(subset=["label"])
+        if is_silent:
+            merged = merged.merge(true_label_lookup, on=["station_id", "ts"], how="left").dropna(subset=["true_label"])
+        if len(merged) == 0:
+            continue
+        missing_in_corrupted = merged["decision_corrupted"].isna()
+        merged["decision_corrupted"] = merged["decision_corrupted"].astype(object).fillna(False).astype(bool)
+        n_corrupted_rows += int(missing_in_corrupted.sum())
+
+        total_flips += int((merged["decision_clean"] != merged["decision_corrupted"]).sum())
+        total_rows += len(merged)
+        if (~missing_in_corrupted).any():
+            errs = (merged.loc[~missing_in_corrupted, "proba_corrupted"]
+                    - merged.loc[~missing_in_corrupted, "proba_clean"]).abs()
+            sum_abs_err += float(errs.sum())
+            n_err += len(errs)
+
+        # class 6: decisions are identical by design; the corrupted side is scored against
+        # the TRUE (pre-offset) availability, the clean side against its own label
+        corrupted_truth = merged["true_label"] if is_silent else merged["label"]
+        _add_cost(clean_cost, policy_cost(merged["decision_clean"], merged["label"], station_id=merged["station_id"], ts=merged["ts"]))
+        _add_cost(corrupted_cost, policy_cost(merged["decision_corrupted"], corrupted_truth, station_id=merged["station_id"], ts=merged["ts"]))
+
+        if do_recovery:
+            # safeguard runs per period (fixed 2026-09-24): the carry-forward used to run
+            # over the whole multi-day frame, so a flagged first row of a period inherited
+            # a value from hours/days earlier (suspected cause of class 2's +165 EUR
+            # post-safeguard cost in the 2026-09-24 all-periods run)
+            recovered_slice = apply_safeguard(corrupted_slice, class_name) if len(corrupted_slice) else corrupted_slice
+            recovered_feat_p = score(model, config, recovered_slice, weather=weather) if len(recovered_slice) else EMPTY_SCORED
+            merged_r = merged.merge(
+                recovered_feat_p[["station_id", "ts", "decision"]].rename(columns={"decision": "decision_recovered"}),
+                on=["station_id", "ts"], how="left",
+            )
+            merged_r["decision_recovered"] = merged_r["decision_recovered"].astype(object).fillna(merged_r["decision_corrupted"]).astype(bool)
+            _add_cost(recovered_cost, policy_cost(merged_r["decision_recovered"], merged_r["label"], station_id=merged_r["station_id"], ts=merged_r["ts"]))
+
+    if total_rows == 0:
+        return None
+
+    flip_rate = total_flips / total_rows
+    forecast_error = (sum_abs_err / n_err) if n_err else np.nan
     delta_cost = corrupted_cost["total"] - clean_cost["total"]
 
     recovery_rate = np.nan
     delta_cost_recovered = np.nan  # post-safeguard Delta cost, paired with delta_cost for H3 (T14)
-    if class_name in RECOVERABLE_CLASSES and class_name != "class1_dropout":
-        recovered_df = apply_safeguard(corrupted_df, class_name)
-        recovered_feat = score(model, config, recovered_df, weather=weather)
-        merged_r = merged.merge(
-            recovered_feat[["station_id", "ts", "decision"]].rename(columns={"decision": "decision_recovered"}),
-            on=["station_id", "ts"], how="left",
-        )
-        merged_r["decision_recovered"] = merged_r["decision_recovered"].astype(object).fillna(merged_r["decision_corrupted"]).astype(bool)
-        recovered_cost = policy_cost(merged_r["decision_recovered"], merged_r["label"], station_id=merged_r["station_id"])
+    if do_recovery:
         delta_cost_recovered = recovered_cost["total"] - clean_cost["total"]
-        gap = corrupted_cost["total"] - clean_cost["total"]
+        gap = delta_cost
         recovery_rate = np.nan if gap == 0 else (corrupted_cost["total"] - recovered_cost["total"]) / gap
-    elif class_name == "class6_silent":
+    elif is_silent:
         recovery_rate = 0.0  # unrecoverable floor, definitional (no detector exists by design)
 
     return {
         "experiment_id": meta["class"] + f"__i{meta['intensity_idx']}__seed{meta['seed']}",
         "class": class_name, "intensity_idx": meta["intensity_idx"], "seed": meta["seed"],
-        "n_rows": len(merged), "flip_rate": flip_rate, "forecast_error": forecast_error,
+        "n_rows": total_rows, "n_flips": total_flips, "n_rows_missing_in_corrupted": n_corrupted_rows,
+        "flip_rate": flip_rate, "forecast_error": forecast_error,
+        "n_dispatches_clean": clean_cost["n_dispatches"], "n_dispatches_corrupted": corrupted_cost["n_dispatches"],
         "delta_cost": delta_cost, "delta_cost_recovered": delta_cost_recovered, "recovery_rate": recovery_rate,
     }
 
 
-def main():
-    print("Loading frozen model + config...")
-    model, config = load_frozen()
+TMP_DIR = Path(__file__).resolve().parents[1] / "data" / "tmp"
+CLEAN_FEAT_CACHE_DIR = TMP_DIR / "clean_feat_by_period"
+PARTIAL_DIR = Path(__file__).resolve().parents[1] / "reports" / "t11_partial"
 
-    print("Loading clean substrate and scoring it once (reference for every comparison)...")
+
+def _load_period_bounds():
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from importlib import import_module
+    # same integer period_id convention as 02's certify_multiday_substrate, which
+    # names the clean-feature cache files - 07's own "P000" ids never match them
+    # (2026-09-23: every worker silently found 0 cached periods and wrote null)
+    substrate = import_module("07_multiday_substrate")
+    kept = substrate.load_certified_periods()
+    bounds = kept[["start", "end"]].reset_index().rename(columns={"index": "period_id"})
+    # TEST periods only (methodology §4.5, fixed 2026-09-24): scoring all 62 meant ~80%
+    # of every Delta-cost came from periods the model was trained or tau-tuned on
+    return bounds[substrate.test_period_mask(bounds, load_frozen()[1])].reset_index(drop=True)
+
+
+def build_worker_cache():
+    """Scores the clean substrate ONCE per period and writes weather to disk,
+    so each of the 120 worker subprocesses only ever build_features() the
+    corrupted/recovered side - clean features used to be recomputed per
+    (experiment, period), i.e. 120x redundant (2026-09-22 finding)."""
+    print("Building clean-feature-by-period + weather cache for worker subprocesses...")
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import importlib.util
     spec = importlib.util.spec_from_file_location("grid", Path(__file__).resolve().parent / "02_generate_injection_grid.py")
     grid = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(grid)
     raw = grid.load_clean_substrate()
-    clean_df = grid.certify_clean_substrate(raw)
+    clean_df, period_bounds = grid.certify_multiday_substrate(raw)  # must match what 02 built data/injected/ from
+    period_bounds = period_bounds[period_bounds["period_id"].isin(_load_period_bounds()["period_id"])]  # test only
     weather = fetch_weather(raw["ts"].min().strftime("%Y-%m-%d"), raw["ts"].max().strftime("%Y-%m-%d"))
-    clean_feat = score(model, config, clean_df, weather=weather)
-    print(f"Clean substrate scored: {len(clean_feat)} rows")
+    del raw
+    TMP_DIR.mkdir(parents=True, exist_ok=True)
+    weather.to_parquet(TMP_DIR / "weather.parquet", index=False)
+
+    model, config = load_frozen()
+    CLEAN_FEAT_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    n_cached = 0
+    for p in period_bounds.itertuples():
+        out_path = CLEAN_FEAT_CACHE_DIR / f"{p.period_id}.parquet"
+        if out_path.exists():  # resumable: a prior build_worker_cache() call may have been killed mid-loop
+            n_cached += 1
+            continue
+        clean_slice = clean_df.loc[(clean_df["ts"] >= p.start) & (clean_df["ts"] <= p.end)]
+        if len(clean_slice) == 0:
+            continue
+        clean_feat_p = score(model, config, clean_slice, weather=weather)
+        clean_feat_p.to_parquet(out_path, index=False)
+        n_cached += 1
+    print(f"Cached {n_cached}/{len(period_bounds)} periods' clean features to {CLEAN_FEAT_CACHE_DIR}/ "
+          f"+ {len(weather)} weather rows to {TMP_DIR}/weather.parquet")
+    # completion marker: main() must be able to tell "cache exists but a prior
+    # run was killed mid-build" apart from "cache is actually complete" - a
+    # partial cache silently under-scores every experiment via evaluate_experiment's
+    # own resumability (missing period files are just skipped), so this can't
+    # be a directory-existence check alone.
+    (CLEAN_FEAT_CACHE_DIR / "_complete").touch()
+
+
+def run_worker(experiment_id):
+    """Worker mode: evaluate exactly ONE experiment and exit. Run as a
+    subprocess (not a function call) so the OS fully reclaims its memory on
+    exit - 2026-09-22: even the per-period chunked single-process version
+    still hit this machine's ~200MB ceiling via gradual fragmentation across
+    thousands of small allocations over the full 120-experiment run, not any
+    single big one. One process per experiment is the standard fix."""
+    model, config = load_frozen()
+    weather = pd.read_parquet(TMP_DIR / "weather.parquet")
+    period_bounds = _load_period_bounds()
+    exp_path = INJECTED_DIR / f"{experiment_id}.parquet"
+    missing = [p for p in period_bounds["period_id"] if not (CLEAN_FEAT_CACHE_DIR / f"{p}.parquet").exists()]
+    if missing:
+        sys.exit(f"{len(missing)}/{len(period_bounds)} periods have no clean-feature cache file (e.g. {missing[:3]})")
+    r = evaluate_experiment(model, config, CLEAN_FEAT_CACHE_DIR, period_bounds, exp_path, weather)
+    if r is None:  # exit nonzero so main() reports it and a rerun retries it, instead of saving null as "done"
+        sys.exit(f"{experiment_id}: evaluated 0 rows")
+    PARTIAL_DIR.mkdir(parents=True, exist_ok=True)
+    (PARTIAL_DIR / f"{experiment_id}.json").write_text(json.dumps(r))
+
+
+def main():
+    if not (CLEAN_FEAT_CACHE_DIR / "_complete").exists() or not (TMP_DIR / "weather.parquet").exists():
+        build_worker_cache()
+    else:
+        print(f"Reusing cached clean features/weather from {TMP_DIR}/ (delete that folder to force a rebuild)")
 
     exp_files = sorted(INJECTED_DIR.glob("*.parquet"))
-    print(f"\nEvaluating {len(exp_files)} experiments...")
-    results = []
+    PARTIAL_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"\nEvaluating {len(exp_files)} experiments, one subprocess each "
+          "(resumable - already-completed ones are skipped)...")
+    failed = []
     for i, exp_path in enumerate(exp_files):
-        r = evaluate_experiment(model, config, clean_feat, exp_path, weather)
-        if r is not None:
-            results.append(r)
-        if (i + 1) % 20 == 0:
+        exp_id = exp_path.stem
+        out_path = PARTIAL_DIR / f"{exp_id}.json"
+        if out_path.exists():
+            continue
+        proc = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve()), "--experiment", exp_id],
+            capture_output=True, text=True,
+        )
+        if proc.returncode != 0:
+            failed.append(exp_id)
+            print(f"  WARNING: {exp_id} subprocess failed (exit {proc.returncode}): {proc.stderr[-500:]}")
+        if (i + 1) % 10 == 0:
             print(f"  {i+1}/{len(exp_files)} done")
+    if failed:
+        print(f"\n{len(failed)} experiment(s) failed and have no result: {failed}")
+
+    results = []
+    for exp_path in exp_files:
+        out_path = PARTIAL_DIR / f"{exp_path.stem}.json"
+        if not out_path.exists():
+            continue
+        r = json.loads(out_path.read_text())
+        if r:
+            results.append(r)
 
     results_df = pd.DataFrame(results)
     reports_dir = Path(__file__).resolve().parents[1] / "reports"
@@ -225,15 +406,21 @@ def main():
     ).reset_index()
     print(agg.to_string(index=False))
 
-    print("\n=== Per-class bootstrap 95% CI on delta_cost (pooled across 4 intensities x 5 seeds = 20 draws) ===")
+    # per (class, intensity), n=5 seeds each (fixed 2026-09-24): pooling the 4 intensities
+    # made the CI measure the spread BETWEEN doses, not sampling error within one - it is
+    # the per-condition effect size + CI Russo asked to report as primary evidence.
+    # ponytail: percentile bootstrap on n=5 is coarse (few distinct resamples); report
+    # the 5 raw values alongside it in the thesis table.
+    print("\n=== Bootstrap 95% CI on delta_cost per class x intensity (5 seeds each) ===")
     rng = np.random.default_rng(0)
     bootstrap_rows = []
-    for class_name, group in results_df.groupby("class"):
+    for (class_name, intensity_idx), group in results_df.groupby(["class", "intensity_idx"]):
         vals = group["delta_cost"].to_numpy()
         boot_means = [rng.choice(vals, size=len(vals), replace=True).mean() for _ in range(2000)]
         lo, hi = np.percentile(boot_means, [2.5, 97.5])
-        bootstrap_rows.append({"class": class_name, "mean_delta_cost": vals.mean(), "ci_low": lo, "ci_high": hi})
-        print(f"  {class_name:16s} mean={vals.mean():10.2f}  95% CI [{lo:10.2f}, {hi:10.2f}]  (n={len(vals)})")
+        bootstrap_rows.append({"class": class_name, "intensity_idx": intensity_idx, "n": len(vals),
+                               "mean_delta_cost": vals.mean(), "ci_low": lo, "ci_high": hi})
+        print(f"  {class_name:16s} i{intensity_idx} mean={vals.mean():10.2f}  95% CI [{lo:10.2f}, {hi:10.2f}]  (n={len(vals)})")
     bootstrap_df = pd.DataFrame(bootstrap_rows)
     bootstrap_df.to_csv(reports_dir / "t11_bootstrap_ci.csv", index=False)
 
@@ -268,4 +455,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--experiment", default=None,
+                         help="worker mode: evaluate this one experiment_id (a data/injected/*.parquet stem) and exit")
+    args = parser.parse_args()
+    if args.experiment:
+        run_worker(args.experiment)
+    else:
+        main()

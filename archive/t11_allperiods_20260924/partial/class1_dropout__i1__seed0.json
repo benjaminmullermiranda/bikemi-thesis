@@ -1,0 +1,1 @@
+{"experiment_id": "class1_dropout__i1__seed0", "class": "class1_dropout", "intensity_idx": 1, "seed": 0, "n_rows": 4283632, "flip_rate": 6.3030624479413735e-06, "forecast_error": 0.0, "delta_cost": 15.0, "delta_cost_recovered": NaN, "recovery_rate": NaN}

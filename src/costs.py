@@ -28,6 +28,7 @@ single guessed constant. Sourcing, per parameter:
 - sigma (substitution share): per docs/thesis_outline.md §7's own stated sweep.
 """
 import numpy as np
+import pandas as pd
 
 POLL_INTERVAL_HOURS = 60 / 3600   # 60 s poll cadence -> hours per row
 
@@ -61,22 +62,29 @@ def _assert_contiguous_stations(station_id):
         start = end
 
 
-def count_dispatch_episodes(decisions, station_id):
+def count_dispatch_episodes(decisions, station_id, ts=None, max_gap_s=120):
     """A preventive dispatch is a physical visit, not a per-poll charge: count
     contiguous True-runs per station as ONE dispatch each. `decisions` and
     `station_id` must be aligned and each station's rows already in chronological
-    order (not necessarily adjacent to other stations' rows)."""
+    order (not necessarily adjacent to other stations' rows).
+    ts (optional, aligned timestamps): a run also breaks where consecutive rows are
+    more than max_gap_s apart (the frozen 120 s continuity rule) - without it, the
+    last row of one period and the first row of the next period (days later) merge
+    into one "episode" whenever both are True (fixed 2026-09-24)."""
     decisions = np.asarray(decisions, dtype=bool)
     station_id = np.asarray(station_id)
     _assert_contiguous_stations(station_id)
     same_station_as_prev = station_id == np.roll(station_id, 1)
+    if ts is not None:
+        t = pd.to_datetime(pd.Series(np.asarray(ts))).astype("int64").to_numpy()
+        same_station_as_prev &= np.abs(t - np.roll(t, 1)) <= max_gap_s * 1_000_000_000
     prev_decision = np.roll(decisions, 1)
     starts_episode = decisions & ~(same_station_as_prev & prev_decision)
     starts_episode[0] = decisions[0]
     return int(starts_episode.sum())
 
 
-def policy_cost(decisions, critical, station_id=None, sigma=0.5,
+def policy_cost(decisions, critical, station_id=None, ts=None, sigma=0.5,
                  revenue_per_ride=REVENUE_PER_RIDE, pickup_rate_per_hour=PICKUP_RATE_PER_HOUR,
                  c_dispatch=C_DISPATCH):
     """decisions, critical: same-length boolean arrays (or pandas Series), one entry
@@ -92,7 +100,7 @@ def policy_cost(decisions, critical, station_id=None, sigma=0.5,
     critical = np.asarray(critical, dtype=bool)
     missed_station_hours = (critical & ~decisions).sum() * POLL_INTERVAL_HOURS
     c_penalty = missed_station_hours * pickup_rate_per_hour * (1 - sigma) * revenue_per_ride
-    n_dispatches = count_dispatch_episodes(decisions, station_id) if station_id is not None else int(decisions.sum())
+    n_dispatches = count_dispatch_episodes(decisions, station_id, ts) if station_id is not None else int(decisions.sum())
     c_transit = n_dispatches * c_dispatch
     return {"c_penalty": c_penalty, "c_transit": c_transit, "total": c_penalty + c_transit, "n_dispatches": n_dispatches}
 
@@ -136,6 +144,11 @@ def demo():
     station_id = np.array(["s1", "s1", "s1", "s1"])
     episode_cost = policy_cost(episode_decisions, critical, station_id=station_id)
     assert episode_cost["n_dispatches"] == 2            # [True,True] run + [True] run = 2 episodes, not 3 rows
+
+    # a multi-day gap inside one station's rows splits the episode (period stitching bug)
+    ts = pd.to_datetime(["2026-09-01 10:00", "2026-09-01 10:01", "2026-09-05 10:00", "2026-09-05 10:01"], utc=True)
+    assert count_dispatch_episodes([True, True, True, True], station_id) == 1
+    assert count_dispatch_episodes([True, True, True, True], station_id, ts) == 2
 
     flipped = decision_flip_rate(decisions, np.array([True, True, False, True]))
     assert flipped == 0.25                              # 1 of 4 rows flipped

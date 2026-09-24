@@ -4,7 +4,8 @@ this. Built 2026-08-08, same day as the Class-2 detector window fix and the Clas
 injector drift_start bound - this script assumes both fixes are already applied to
 src/validation.py and src/injection.py.
 
-H1 (Occurrence): negative-binomial GLM, count ~ station + hour, LRT for unevenness.
+H1 (Occurrence): negative-binomial GLM on the 62 certified periods, one LRT per factor
+(station, hour, day; Milan local time) - see run_h1. Holm correction across H1-H2 (§4.7).
 H2 (Non-linear, class-dependent propagation): two-way model on delta_cost, class x
 intensity interaction; permutation inference if diagnostics fail at n=5 (they do here -
 that's expected and reported, not a problem to hide).
@@ -40,49 +41,56 @@ REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 # ---------------------------------------------------------------------------
 
 
+def _nb_lrt(agg, full_terms, drop_term):
+    """LRT for one factor: NB GLM with all full_terms vs. the same model without
+    drop_term, both offset by log(exposure) so bins with more observations aren't
+    penalised for having more raw opportunities to flag."""
+    def fit(terms):
+        rhs = " + ".join(f"C({t})" for t in terms) or "1"
+        return smf.negativebinomial(f"n_jump ~ {rhs}", data=agg, offset=agg["log_exposure"]).fit(disp=0, maxiter=200)
+    full = fit(full_terms)
+    reduced = fit([t for t in full_terms if t != drop_term])
+    lr = 2 * (full.llf - reduced.llf)
+    df_diff = int(full.df_model - reduced.df_model)
+    return {"factor": drop_term, "n_bins": len(agg), "lr_statistic": lr, "lr_df": df_diff,
+            "lr_p_value": sstats.chi2.sf(lr, df_diff), "alpha_dispersion": float(full.params.get("alpha", np.nan))}
+
+
 def run_h1(raw):
+    """Updated 2026-09-24 for the certified multi-day substrate: raw is restricted
+    to the 62 certified periods (not the live archive), hours/days are Milan local
+    time, and day is added as a factor (§4.7). One LRT per factor, since a single
+    station x hour x day NB model (~160k bins x ~370 dummies) does not fit in this
+    machine's memory: station and hour are tested on (station, hour) bins, day on
+    (day, hour) bins. Hours only cover the daytime window the collector actually
+    captured - H1's hour effect says nothing about unobserved night hours."""
     print("=" * 70)
-    print("H1 (Occurrence): negative-binomial GLM, count ~ station + hour")
+    print("H1 (Occurrence): negative-binomial GLM, LRT per factor (station, hour, day)")
     print("=" * 70)
 
     flagged = detect_implausible_jump(raw, max_flow_per_min=1.0)
-    flagged["hour"] = flagged["ts"].dt.hour
+    local = flagged["ts"].dt.tz_convert("Europe/Rome")
+    flagged["hour"], flagged["day"] = local.dt.hour, local.dt.date.astype(str)
+    print(f"{int(flagged['jump_flag'].sum())} flagged rows of {len(flagged)}; "
+          f"local hours covered: {sorted(flagged['hour'].unique())}")
 
-    agg = flagged.groupby(["station_id", "hour"]).agg(
-        n_jump=("jump_flag", "sum"), n_obs=("jump_flag", "size")
-    ).reset_index()
-    agg = agg[agg["n_obs"] > 0].copy()
-    agg["log_exposure"] = np.log(agg["n_obs"])
-    print(f"{len(agg)} (station, hour) bins, {agg['n_jump'].sum()} total flagged rows "
-          f"of {agg['n_obs'].sum()} observed")
+    def bins(keys):
+        agg = flagged.groupby(keys, observed=True).agg(n_jump=("jump_flag", "sum"), n_obs=("jump_flag", "size")).reset_index()
+        agg = agg[agg["n_obs"] > 0].copy()
+        agg["log_exposure"] = np.log(agg["n_obs"])
+        return agg
 
-    # full: station + hour effects, offset by log(exposure) so bins with more
-    # observations aren't penalised for having more raw opportunities to flag
-    full = smf.negativebinomial(
-        "n_jump ~ C(station_id) + C(hour)", data=agg, offset=agg["log_exposure"]
-    ).fit(disp=0, maxiter=200)
-    null = smf.negativebinomial(
-        "n_jump ~ 1", data=agg, offset=agg["log_exposure"]
-    ).fit(disp=0, maxiter=200)
-
-    lr_stat = 2 * (full.llf - null.llf)
-    df_diff = int(full.df_model - null.df_model)
-    p_value = sstats.chi2.sf(lr_stat, df_diff)
-
-    print(f"\nFull model: {full.df_model:.0f} params, llf={full.llf:.2f}")
-    print(f"Null model (intercept only): llf={null.llf:.2f}")
-    print(f"LRT: statistic={lr_stat:.2f}, df={df_diff}, p={p_value:.3e}")
-    print(f"Dispersion (alpha) = {full.params.get('alpha', np.nan):.4f} "
-          f"(alpha > 0 confirms overdispersion - chi2 on raw counts would have been invalid)")
-
-    result = {
-        "n_bins": len(agg), "total_flagged": int(agg["n_jump"].sum()), "total_obs": int(agg["n_obs"].sum()),
-        "lr_statistic": lr_stat, "lr_df": df_diff, "lr_p_value": p_value,
-        "alpha_dispersion": float(full.params.get("alpha", np.nan)),
-    }
-    pd.Series(result).to_csv(REPORTS_DIR / "t14_h1_glm_result.csv")
-    agg.to_csv(REPORTS_DIR / "t14_h1_station_hour_counts.csv", index=False)
-    print(f"\nSaved to reports/t14_h1_glm_result.csv, reports/t14_h1_station_hour_counts.csv")
+    station_hour = bins(["station_id", "hour"])
+    day_hour = bins(["day", "hour"])
+    rows = [_nb_lrt(station_hour, ["station_id", "hour"], "station_id"),
+            _nb_lrt(station_hour, ["station_id", "hour"], "hour"),
+            _nb_lrt(day_hour, ["day", "hour"], "day")]
+    result = pd.DataFrame(rows)
+    print(result.to_string(index=False))
+    result.to_csv(REPORTS_DIR / "t14_h1_glm_result.csv", index=False)
+    station_hour.to_csv(REPORTS_DIR / "t14_h1_station_hour_counts.csv", index=False)
+    day_hour.to_csv(REPORTS_DIR / "t14_h1_day_hour_counts.csv", index=False)
+    print(f"\nSaved to reports/t14_h1_glm_result.csv, t14_h1_station_hour_counts.csv, t14_h1_day_hour_counts.csv")
     return result
 
 
@@ -169,25 +177,37 @@ def run_h2(dose_response_csv="reports/t11_dose_response.csv"):
 
 
 def main():
-    print("Loading full raw collection for H1...")
+    print("Loading raw collection, restricted to the 62 certified periods, for H1...")
     raw = load_full_collection()
-    print(f"{len(raw)} rows, {raw['station_id'].nunique()} stations\n")
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from importlib import import_module
+    periods = import_module("07_multiday_substrate").load_certified_periods()
+    in_period = np.zeros(len(raw), dtype=bool)
+    for p in periods.itertuples():
+        in_period |= ((raw["ts"] >= p.start) & (raw["ts"] <= p.end)).to_numpy()
+    raw = raw.loc[in_period, ["station_id", "ts", "num_bikes_available"]].reset_index(drop=True)
+    print(f"{len(raw)} rows in {len(periods)} certified periods, {raw['station_id'].nunique()} stations\n")
 
     h1 = run_h1(raw)
+    del raw
     h2 = run_h2()
 
+    # Holm across the H1-H2 family, as pre-registered in §4.7
+    p_h2 = h2["permutation_p"] if h2["permutation_p"] is not None else h2["parametric_p"]
+    names = [f"H1 {f}" for f in h1["factor"]] + ["H2 class x intensity"]
+    pvals = list(h1["lr_p_value"]) + [p_h2]
+    order = np.argsort(pvals)
+    holm = np.empty(len(pvals))
+    running = 0.0
+    for rank, i in enumerate(order):
+        running = max(running, min(1.0, (len(pvals) - rank) * pvals[i]))
+        holm[i] = running
+    summary = pd.DataFrame({"test": names, "p_raw": pvals, "p_holm": holm, "reject_at_0.05": holm < 0.05})
     print("\n" + "=" * 70)
-    print("SUMMARY")
+    print("SUMMARY (Holm-corrected, alpha=0.05)")
     print("=" * 70)
-    print(f"H1: unevenness LRT p={h1['lr_p_value']:.3e} "
-          f"({'REJECT null (uneven)' if h1['lr_p_value'] < 0.05 else 'fail to reject'} at alpha=0.05)")
-    p_for_h2 = h2["permutation_p"] if h2["permutation_p"] is not None else h2["parametric_p"]
-    test_used = "permutation" if h2["permutation_p"] is not None else "parametric"
-    print(f"H2: class x intensity interaction, {test_used} p={p_for_h2:.4f} "
-          f"({'REJECT null (interaction present)' if p_for_h2 < 0.05 else 'fail to reject'} at alpha=0.05)")
-    print("\nBoth results are from the CURRENT partial substrate (POC-level, not final) - "
-          "this validates the test code runs correctly end to end. Re-run once, unmodified, "
-          "against the certified substrate at collection close for the registered result.")
+    print(summary.to_string(index=False))
+    summary.to_csv(REPORTS_DIR / "t14_h1_h2_holm_summary.csv", index=False)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,5 @@
+test,p_raw,p_holm,reject_at_0.05
+H1 station_id,0.0,0.0,True
+H1 hour,0.0,0.0,True
+H1 day,3.0332794792141177e-21,3.0332794792141177e-21,True
+H2 class x intensity,0.0,0.0,True

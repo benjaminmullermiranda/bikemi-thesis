@@ -1,0 +1,1 @@
+{"experiment_id": "class3_stale__i3__seed2", "class": "class3_stale", "intensity_idx": 3, "seed": 2, "n_rows": 4283632, "flip_rate": 0.00011088720973230193, "forecast_error": 1.5395106621621516e-05, "delta_cost": -30.0, "delta_cost_recovered": NaN, "recovery_rate": NaN}

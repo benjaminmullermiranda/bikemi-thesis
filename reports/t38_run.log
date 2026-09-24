@@ -1,0 +1,114 @@
+Loading raw collection...
+WARNING: skipped 10 unreadable/corrupt raw file(s)
+  7,352,042 station-observations, 22,986 distinct polls, 320 stations
+
+211 continuous segments found; 62 retained (>= 2.25 h), 149 too short to forecast in (their combined length: 137.4 h)
+  P000 2026-07-25  6.23 h  obs=117,760  forecastable= 72,092  crit=36,160
+  P001 2026-07-26  4.51 h  obs= 85,120  forecastable= 40,349  crit=22,477
+  P002 2026-07-26  2.87 h  obs= 54,080  forecastable= 10,233  crit=15,372
+  P003 2026-07-29  4.72 h  obs= 88,960  forecastable= 43,159  crit=13,540
+  P004 2026-07-29  2.75 h  obs= 52,160  forecastable=  7,750  crit= 5,858
+  P005 2026-07-29  4.05 h  obs= 76,160  forecastable= 31,783  crit=27,480
+  P006 2026-07-30  2.98 h  obs= 56,320  forecastable= 11,855  crit= 8,313
+  P007 2026-07-30  2.81 h  obs= 53,120  forecastable=  8,714  crit= 7,015
+  P008 2026-07-30  2.27 h  obs= 42,880  forecastable=      0  crit=13,924
+  P009 2026-07-31  4.06 h  obs= 76,800  forecastable= 31,597  crit=12,658
+  P010 2026-08-02  2.40 h  obs= 45,120  forecastable=  1,346  crit= 9,173
+  P011 2026-08-02  2.93 h  obs= 54,981  forecastable= 11,089  crit=13,841
+  P012 2026-08-04  3.34 h  obs= 63,040  forecastable= 18,629  crit= 7,045
+  P013 2026-08-04  2.62 h  obs= 49,600  forecastable=  5,905  crit=11,342
+  P014 2026-08-05  2.60 h  obs= 48,960  forecastable=  5,074  crit= 6,163
+  P015 2026-08-05  2.41 h  obs= 45,440  forecastable=  1,913  crit= 9,132
+  P016 2026-08-06  4.11 h  obs= 77,440  forecastable= 32,587  crit= 9,786
+  P017 2026-08-06  5.75 h  obs=108,160  forecastable= 62,847  crit=22,930
+  P018 2026-08-07  4.48 h  obs= 84,480  forecastable= 38,922  crit=10,955
+  P019 2026-08-07  3.22 h  obs= 59,840  forecastable= 15,745  crit=11,563
+  P020 2026-08-07  3.00 h  obs= 56,960  forecastable= 13,172  crit=11,178
+  P021 2026-08-08  4.11 h  obs= 77,440  forecastable= 32,677  crit=12,207
+  P022 2026-08-08  7.08 h  obs=133,120  forecastable= 87,037  crit=22,497
+  P023 2026-08-09  8.53 h  obs=160,000  forecastable=112,356  crit=26,027
+  P024 2026-08-09  6.99 h  obs=131,520  forecastable= 86,173  crit=25,022
+  P025 2026-08-10  4.73 h  obs= 88,960  forecastable= 44,125  crit= 7,052
+  P026 2026-08-10  8.09 h  obs=152,000  forecastable=105,454  crit=23,443
+  P027 2026-08-11  6.38 h  obs=120,000  forecastable= 74,151  crit=14,252
+  P028 2026-08-11  2.84 h  obs= 52,800  forecastable=  8,999  crit= 6,655
+  P029 2026-08-12  4.53 h  obs= 84,800  forecastable= 40,041  crit= 7,834
+  P030 2026-08-13  2.61 h  obs= 49,280  forecastable=  5,576  crit= 5,181
+  P031 2026-08-13  3.33 h  obs= 62,400  forecastable= 18,317  crit= 5,511
+  P032 2026-08-13  5.46 h  obs=103,040  forecastable= 58,063  crit=11,572
+  P033 2026-08-14  5.13 h  obs= 96,320  forecastable= 50,841  crit= 8,493
+  P034 2026-08-14  2.38 h  obs= 44,800  forecastable=  1,083  crit= 3,844
+  P035 2026-08-16  2.77 h  obs= 52,480  forecastable=  8,816  crit= 6,279
+  P036 2026-08-16  4.86 h  obs= 91,520  forecastable= 46,704  crit=11,900
+  P037 2026-08-16  6.39 h  obs=119,680  forecastable= 73,720  crit=15,892
+  P038 2026-08-17  3.34 h  obs= 63,040  forecastable= 18,691  crit= 7,085
+  P039 2026-08-17  2.35 h  obs= 44,480  forecastable=    883  crit= 5,188
+  P040 2026-08-18  4.22 h  obs= 79,680  forecastable= 34,644  crit= 8,455
+  P041 2026-08-22  2.35 h  obs= 44,160  forecastable=    819  crit= 8,987
+  P042 2026-08-24  4.84 h  obs= 90,880  forecastable= 44,366  crit=14,232
+  P043 2026-09-01  2.29 h  obs= 43,200  forecastable=      0  crit= 6,338
+  P044 2026-09-02  3.09 h  obs= 58,560  forecastable= 14,720  crit=18,405
+  P045 2026-09-03  2.62 h  obs= 49,600  forecastable=  5,484  crit= 7,512
+  P046 2026-09-05  2.73 h  obs= 51,520  forecastable=  7,107  crit= 9,875
+  P047 2026-09-05  3.67 h  obs= 69,760  forecastable= 25,751  crit=18,703
+  P048 2026-09-06  4.16 h  obs= 78,400  forecastable= 33,749  crit=21,628
+  P049 2026-09-07  7.34 h  obs=138,240  forecastable= 88,279  crit=29,224
+  P050 2026-09-07  3.32 h  obs= 62,720  forecastable= 18,411  crit=23,537
+  P051 2026-09-09  2.56 h  obs= 48,320  forecastable=  4,409  crit= 9,793
+  P052 2026-09-09  3.83 h  obs= 72,000  forecastable= 26,136  crit=12,067
+  P053 2026-09-10  2.35 h  obs= 44,480  forecastable=    601  crit= 6,511
+  P054 2026-09-11  3.23 h  obs= 60,480  forecastable= 16,095  crit= 9,238
+  P055 2026-09-13  3.70 h  obs= 69,760  forecastable= 25,222  crit=21,155
+  P056 2026-09-14  2.48 h  obs= 46,574  forecastable=  2,604  crit= 8,420
+  P057 2026-09-15  4.05 h  obs= 75,922  forecastable= 30,353  crit=15,445
+  P058 2026-09-16  6.00 h  obs=112,288  forecastable= 65,493  crit=25,304
+  P059 2026-09-16  5.03 h  obs= 94,424  forecastable= 46,860  crit=29,895
+  P060 2026-09-17  7.33 h  obs=137,489  forecastable= 88,062  crit=22,288
+  P061 2026-09-17  4.30 h  obs= 80,707  forecastable= 36,295  crit=40,157
+
+{
+  "generated": "2026-09-19 14:40:51.219654+00:00",
+  "rule": {
+    "max_gap_s": 120,
+    "min_period_s": 8100,
+    "critical_def": "num_bikes_available <= 2 or num_docks_available <= 2",
+    "horizon_steps": 120,
+    "poll_seconds": 60
+  },
+  "collection_window": {
+    "first_poll": "2026-07-24 09:45:45+00:00",
+    "last_poll": "2026-09-19 14:12:00+00:00"
+  },
+  "segments_found": 211,
+  "periods_retained": 62,
+  "periods_dropped_too_short": 149,
+  "distinct_days": 36,
+  "days_with_multiple_periods": 21,
+  "duration_h": {
+    "total": 251.48,
+    "mean": 4.06,
+    "median": 3.69,
+    "min": 2.27,
+    "max": 8.53
+  },
+  "per_day_total_h": {
+    "mean": 6.99,
+    "min": 2.29,
+    "max": 15.52
+  },
+  "observations": 4734225,
+  "observations_clean": 4661334,
+  "jump_rows_excluded": 72891,
+  "frozen_rows_flagged_kept": 1560435,
+  "observations_forecastable": 1953928,
+  "critical_observations": 879008,
+  "critical_share_of_observations": 0.1886,
+  "critical_station_hours": 15167.3,
+  "critical_station_hours_naive": 14650.1,
+  "critical_episodes": 9682,
+  "stations_ever_critical": 319,
+  "label_positive": 372702,
+  "label_positive_rate": 0.1907
+}
+
+Wrote reports/t38_daily_periods.csv and reports/t38_substrate_summary.json

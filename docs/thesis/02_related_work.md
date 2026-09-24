@@ -5,9 +5,6 @@ data-quality degradation should be traced to its downstream, decision-level cost
 not just to model accuracy. It also covers the literature behind the bounded
 agent extension in §4.6, and closes with the gap this thesis fills.
 
-*Full bibliographic details (volume, pages, DOIs) still need a final
-verification pass before submission.*
-
 **Data-quality propagation.** Sambasivan et al. (2021, CHI), *"Data Cascades in
 High-Stakes AI,"* name and document compounding, downstream consequences of
 upstream data-quality issues, the closest precedent for this thesis's
