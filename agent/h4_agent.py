@@ -5,6 +5,7 @@ Protocol: agent/PROTOCOL.md (fixed and committed BEFORE `run`).
 
     python agent/h4_agent.py build             # -> agent/scenarios.json (deterministic, no API calls)
     python agent/h4_agent.py run --dry-run     # print the 48 prompts, no API calls
+    python agent/h4_agent.py check             # one test call per model (needs NVIDIA_API_KEY)
     python agent/h4_agent.py run [MODEL_ID...] # all MODELS x REPS -> reports/agent_h4_responses.jsonl (resumable)
     python agent/h4_agent.py score             # -> reports/agent_h4_scores.csv, agent_h4_summary.csv
 
@@ -34,8 +35,9 @@ EXPERIMENT = "class5_jump__i2__seed0"
 LAGS = [15, 5, 2, 1]                     # the frozen model's bikes/docks lags (src/features.py)
 TEST_PERIOD_MIN = 50                     # test periods 50-61 (frozen_config.json split)
 N_PER_KIND = 4                           # 4 decision-flip + 4 no-flip scenarios
-MODELS = ["claude-haiku-4-5", "claude-sonnet-4-6", "claude-sonnet-5", "claude-opus-5"]  # PROTOCOL.md §5
-TEMPERATURE_MODELS = {"claude-haiku-4-5", "claude-sonnet-4-6"}  # accept temperature=0; the 5.x models reject it
+# PROTOCOL.md amendment A1: open-weight models on NVIDIA's hosted API, temperature 0
+MODELS = ["google/gemma-3-12b-it", "openai/gpt-oss-20b",
+          "mistralai/mistral-large-2-instruct", "nvidia/nemotron-3-super-120b-a12b"]
 REPS = 3
 
 QUESTIONS = [
@@ -192,6 +194,60 @@ def cells():
                 yield sc, cond, cfg, tool_output(sc, cond, cfg, data["tau"])
 
 
+NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
+
+
+def parse_answer(text):
+    """First JSON object in the reply, validated against OUTPUT_SCHEMA's fields."""
+    m = re.search(r"\{.*\}", text or "", re.S)
+    if not m:
+        raise ValueError("no JSON object in reply")
+    a = json.loads(m.group(0))
+    if a.get("decision") not in ("dispatch", "no_dispatch", "abstain") \
+            or not isinstance(a.get("data_quality_warning"), bool) or not isinstance(a.get("rationale"), str):
+        raise ValueError(f"reply does not match schema: {a}")
+    return {k: a[k] for k in ("decision", "data_quality_warning", "rationale")}
+
+
+def ask(model_id, user):
+    """One chat call to NVIDIA's hosted API (OpenAI-compatible), temperature 0, JSON
+    constrained with guided_json. Retries rate limits/server errors and malformed
+    replies; returns (served model, answer). Key: NVIDIA_API_KEY environment variable."""
+    import os
+    import time
+    import requests
+    headers = {"Authorization": f"Bearer {os.environ['NVIDIA_API_KEY']}", "Accept": "application/json"}
+    body = {"model": model_id, "temperature": 0, "max_tokens": 4096,
+            "messages": [{"role": "system", "content": SYSTEM + "\n\nReply with a single JSON object only."},
+                         {"role": "user", "content": user}],
+            "nvext": {"guided_json": OUTPUT_SCHEMA}}
+    last = None
+    for attempt in range(6):
+        r = requests.post(NVIDIA_URL, headers=headers, json=body, timeout=180)
+        if r.status_code in (429, 500, 502, 503, 504):
+            last = f"HTTP {r.status_code}"
+            time.sleep(10 * (attempt + 1))
+            continue
+        r.raise_for_status()
+        data = r.json()
+        try:
+            return data.get("model", model_id), parse_answer(data["choices"][0]["message"]["content"])
+        except ValueError as e:  # malformed reply: retried, identical request
+            last = str(e)
+    raise RuntimeError(f"{model_id}: no valid reply after 6 attempts ({last})")
+
+
+def check():
+    """Admission test (PROTOCOL amendment A1): one call per model on S1/clean/blind."""
+    sc, cond, cfg, tool = next(cells())
+    user = f"{sc['question'].format(name=sc['name'])}\n\n<tool_output>\n{tool}\n</tool_output>"
+    for m in MODELS:
+        try:
+            print("OK  ", m, ask(m, user))
+        except Exception as e:  # noqa: BLE001 - report every model, then decide
+            print("FAIL", m, e)
+
+
 def run(model_id, reps=REPS, dry_run=False):
     if dry_run:
         for sc, cond, cfg, tool in cells():
@@ -201,25 +257,14 @@ def run(model_id, reps=REPS, dry_run=False):
     if RESPONSES.exists():
         done = {(r["model_requested"], r["rep"], r["scenario_id"], r["condition"], r["config"])
                 for r in map(json.loads, RESPONSES.open())}
-    import anthropic
-    client = anthropic.Anthropic()
-    # temperature 0 where the model accepts it; the newest models reject sampling params
-    sampling = {"temperature": 0} if model_id in TEMPERATURE_MODELS else {}
     with RESPONSES.open("a") as out:
         for rep in range(reps):
             for sc, cond, cfg, tool in cells():
                 if (model_id, rep, sc["scenario_id"], cond, cfg) in done:
                     continue
                 user = f"{sc['question'].format(name=sc['name'])}\n\n<tool_output>\n{tool}\n</tool_output>"
-                resp = client.messages.create(
-                    model=model_id, max_tokens=4096, system=SYSTEM, **sampling,
-                    messages=[{"role": "user", "content": user}],
-                    output_config={"format": {"type": "json_schema", "schema": OUTPUT_SCHEMA}},
-                )
-                if resp.stop_reason != "end_turn":
-                    sys.exit(f"{model_id} rep{rep} {sc['scenario_id']} {cond} {cfg}: stop_reason={resp.stop_reason}")
-                answer = json.loads(next(b.text for b in resp.content if b.type == "text"))
-                out.write(json.dumps({"model_requested": model_id, "model": resp.model, "rep": rep,
+                served, answer = ask(model_id, user)
+                out.write(json.dumps({"model_requested": model_id, "model": served, "rep": rep,
                                       "scenario_id": sc["scenario_id"], "condition": cond, "config": cfg,
                                       "tool_output": tool, **answer}) + "\n")
                 out.flush()
@@ -273,6 +318,13 @@ def score():
 def demo():
     assert grounded("Probability 0.96 (96%) exceeds 0.85; bikes 3", "p = 0.96, tau 0.85, bikes 3")
     assert not grounded("about 40 bikes", "bikes 3")
+    fenced = '```json\n{"decision": "abstain", "data_quality_warning": true, "rationale": "x"}\n```'
+    assert parse_answer(fenced)["decision"] == "abstain"
+    try:
+        parse_answer('{"decision": "maybe", "data_quality_warning": true, "rationale": "x"}')
+        raise AssertionError("invalid decision accepted")
+    except ValueError:
+        pass
 
 
 if __name__ == "__main__":
@@ -286,6 +338,8 @@ if __name__ == "__main__":
             run(model_id, dry_run="--dry-run" in sys.argv)
             if "--dry-run" in sys.argv:
                 break
+    elif cmd == "check":
+        check()
     elif cmd == "score":
         score()
     else:

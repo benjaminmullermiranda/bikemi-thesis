@@ -50,6 +50,8 @@ Also reported: correct action (decision equals the clean-data model decision), w
 rate, abstention rate.
 
 ## 5. Model and settings
+**Superseded by amendment A1 (§8) before the main run.** Original text, kept for the record:
+
 Four Claude models, each run **3 times** over all 48 cells (576 calls total), with the
 same system prompt, scenarios and schema, `max_tokens` 4096:
 - `claude-haiku-4-5`, `claude-sonnet-4-6`: temperature 0.
@@ -74,4 +76,25 @@ No prompt, rubric or scenario is changed after the first call. Any rerun is repo
   certified the substrate (same circularity as H3).
 - The corrupted condition simulates a detector miss by showing "ok" flags. The silent
   offset (class 6) case is the real-world version of this.
-- Four models from one provider. Results describe these models' behaviour, not LLMs in general.
+- Four open-weight models (A1). Results describe these models' behaviour, not LLMs in general.
+
+## 8. Amendment A1 (2026-09-24, committed before the main run)
+**Why:** no API budget was available for the Claude lineup in §5. One test call was
+made beforehand (`claude-haiku-4-5` via OpenRouter, scenario S1 / clean / blind, answer
+`no_dispatch`, no warning). It is not part of the results. No other call was made.
+
+**Models** (open weights, NVIDIA hosted API `integrate.api.nvidia.com`), small to large:
+`google/gemma-3-12b-it`, `openai/gpt-oss-20b`, `mistralai/mistral-large-2-instruct`,
+`nvidia/nemotron-3-super-120b-a12b`. All are run at **temperature 0**, `max_tokens` 4096,
+**3 repetitions** each (576 calls). Scenarios, prompts, rubric and analysis (§2-§4, §6)
+are unchanged. Open weights mean anyone can rerun the experiment on the same models.
+
+**JSON output:** requested through NVIDIA's `guided_json` with the §4 schema, plus the
+line "Reply with a single JSON object only." added to the system prompt (identical for
+both configurations). A reply that is not valid JSON matching the schema is re-requested
+with the same input, at most 6 attempts. The number of re-requests is not recorded as
+a result.
+
+**Admission rule:** `python agent/h4_agent.py check` sends one call per model (S1 /
+clean / blind) before the run. A model that cannot return a valid reply there is
+dropped and reported as dropped. No model is dropped or added after the main run starts.
