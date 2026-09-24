@@ -98,3 +98,16 @@ a result.
 **Admission rule:** `python agent/h4_agent.py check` sends one call per model (S1 /
 clean / blind) before the run. A model that cannot return a valid reply there is
 dropped and reported as dropped. No model is dropped or added after the main run starts.
+
+## 9. Amendment A2 (2026-09-24, committed before the admission check and main run)
+**Why:** no NVIDIA API key was obtained; a Groq API key was. No NVIDIA call was made.
+
+**Models** (open weights, Groq hosted API `api.groq.com`): `openai/gpt-oss-20b`,
+`qwen/qwen3.8-27b`, `openai/gpt-oss-120b`. These are all the general chat models the key
+can access, except `allam-2-7b` (an Arabic-focused model with a 4k context). This
+replaces the A1 list. Temperature 0, `max_tokens` 4096, 3 repetitions each (432 calls).
+
+**JSON output:** Groq JSON mode (`response_format: json_object`) instead of
+`guided_json`; the reply is then validated against the §4 schema. Invalid replies are
+re-requested as in A1 (at most 6 attempts). Everything else in A1 and §2-§4, §6 holds,
+including the admission rule (`check`).

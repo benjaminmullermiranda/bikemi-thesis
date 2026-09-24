@@ -5,7 +5,7 @@ Protocol: agent/PROTOCOL.md (fixed and committed BEFORE `run`).
 
     python agent/h4_agent.py build             # -> agent/scenarios.json (deterministic, no API calls)
     python agent/h4_agent.py run --dry-run     # print the 48 prompts, no API calls
-    python agent/h4_agent.py check             # one test call per model (needs NVIDIA_API_KEY)
+    python agent/h4_agent.py check             # one test call per model (needs GROQ_API_KEY)
     python agent/h4_agent.py run [MODEL_ID...] # all MODELS x REPS -> reports/agent_h4_responses.jsonl (resumable)
     python agent/h4_agent.py score             # -> reports/agent_h4_scores.csv, agent_h4_summary.csv
 
@@ -35,9 +35,8 @@ EXPERIMENT = "class5_jump__i2__seed0"
 LAGS = [15, 5, 2, 1]                     # the frozen model's bikes/docks lags (src/features.py)
 TEST_PERIOD_MIN = 50                     # test periods 50-61 (frozen_config.json split)
 N_PER_KIND = 4                           # 4 decision-flip + 4 no-flip scenarios
-# PROTOCOL.md amendment A1: open-weight models on NVIDIA's hosted API, temperature 0
-MODELS = ["google/gemma-3-12b-it", "openai/gpt-oss-20b",
-          "mistralai/mistral-large-2-instruct", "nvidia/nemotron-3-super-120b-a12b"]
+# PROTOCOL.md amendment A2: open-weight models on Groq's hosted API, temperature 0
+MODELS = ["openai/gpt-oss-20b", "qwen/qwen3.8-27b", "openai/gpt-oss-120b"]
 REPS = 3
 
 QUESTIONS = [
@@ -194,7 +193,7 @@ def cells():
                 yield sc, cond, cfg, tool_output(sc, cond, cfg, data["tau"])
 
 
-NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
+API_URL = "https://api.groq.com/openai/v1/chat/completions"  # OpenAI-compatible
 
 
 def parse_answer(text):
@@ -210,23 +209,23 @@ def parse_answer(text):
 
 
 def ask(model_id, user):
-    """One chat call to NVIDIA's hosted API (OpenAI-compatible), temperature 0, JSON
-    constrained with guided_json. Retries rate limits/server errors and malformed
-    replies; returns (served model, answer). Key: NVIDIA_API_KEY environment variable."""
+    """One chat call to Groq's hosted API (OpenAI-compatible), temperature 0, JSON mode.
+    Retries rate limits/server errors and malformed replies; returns (served model,
+    answer). Key: GROQ_API_KEY environment variable."""
     import os
     import time
     import requests
-    headers = {"Authorization": f"Bearer {os.environ['NVIDIA_API_KEY']}", "Accept": "application/json"}
+    headers = {"Authorization": f"Bearer {os.environ['GROQ_API_KEY']}"}
     body = {"model": model_id, "temperature": 0, "max_tokens": 4096,
             "messages": [{"role": "system", "content": SYSTEM + "\n\nReply with a single JSON object only."},
                          {"role": "user", "content": user}],
-            "nvext": {"guided_json": OUTPUT_SCHEMA}}
+            "response_format": {"type": "json_object"}}
     last = None
     for attempt in range(6):
-        r = requests.post(NVIDIA_URL, headers=headers, json=body, timeout=180)
-        if r.status_code in (429, 500, 502, 503, 504):
-            last = f"HTTP {r.status_code}"
-            time.sleep(10 * (attempt + 1))
+        r = requests.post(API_URL, headers=headers, json=body, timeout=180)
+        if r.status_code in (400, 429, 500, 502, 503, 504):  # 400 = json_validate_failed: re-request
+            last = f"HTTP {r.status_code}: {r.text[:200]}"
+            time.sleep(float(r.headers.get("retry-after", 10 * (attempt + 1))))
             continue
         r.raise_for_status()
         data = r.json()
