@@ -1,0 +1,4 @@
+model_requested,stable_share
+openai/gpt-oss-120b,0.8541666666666666
+openai/gpt-oss-20b,0.875
+qwen/qwen3.8-27b,1.0
