@@ -34,3 +34,4 @@ venv/
 docs/outbox/
 # graphify cache
 graphify-out/
+docs/handoff_archive_*.md
