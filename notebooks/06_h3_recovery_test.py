@@ -93,13 +93,13 @@ def run_h3(dose_response_csv="reports/t11_dose_response.csv"):
             # all-zero difference vector, not a code bug to work around.
             print("  Wilcoxon: skipped - pre == post for every pair (no cost gap exists "
                   "to recover on this substrate; see docs/model_diagnostics_2026-08-09.md)")
-            wilcoxon_rows.append({"class": class_name, "n_pairs": len(recovered),
+            wilcoxon_rows.append({"class": class_name, "n_pairs": len(pre),  # pooled over intensities (n=20), not the last group
                                    "statistic": np.nan, "p_value": np.nan,
                                    "note": "degenerate: pre==post for every pair"})
         else:
             stat, p = sstats.wilcoxon(pre, post)
             print(f"  Wilcoxon signed-rank: statistic={stat:.3f}, p={p:.4f}")
-            wilcoxon_rows.append({"class": class_name, "n_pairs": len(recovered),
+            wilcoxon_rows.append({"class": class_name, "n_pairs": len(pre),  # pooled over intensities (n=20), not the last group
                                    "statistic": float(stat), "p_value": float(p), "note": ""})
 
     bootstrap_df = pd.DataFrame(bootstrap_rows)
