@@ -1,7 +1,7 @@
 # Data Quality and Agentic AI in Operational Decision Support
 ### A Bike-Sharing Case Study (BikeMi Milan) — Bachelor's Thesis
 
-B.Sc. Business with Data Science · Supervisor: Prof. Ciro Russo
+B.Sc. Economics with Data Science (Class L-33) · Supervisor: Prof. Ciro Russo
 
 ## What this project does
 Collects the live GBFS feed of Milan's BikeMi bike-sharing system, characterises real data-quality anomalies, and measures — via controlled fault injection — how data-quality degradation propagates through a deliberately simple, frozen forecasting model into dispatch decisions and operational cost. A bounded agent experiment (quality signals exposed to an LLM agent) is specified but not run in this submission. Full research design: [docs/thesis_outline.md](docs/thesis_outline.md).
@@ -42,7 +42,7 @@ Run from the repository root, in this order (the file numbering is historical, n
 
 | Step | Script | Produces |
 |---|---|---|
-| 1 | `notebooks/07_multiday_substrate.py` | `reports/t38_*`, the certified 62-period substrate. **Do not re-run**: the committed `t38_daily_periods.csv` is the supervisor-approved substrate; re-running recomputes it from the still-growing archive |
+| 1 | `notebooks/07_multiday_substrate.py` | `reports/t38_*`, the certified 62-period substrate. **Do not re-run**: the committed `t38_daily_periods.csv` is the certified substrate used in the thesis; re-running recomputes it from the still-growing archive |
 | 2 | `notebooks/03_train_frozen_model.py` | `models/frozen_model.joblib`, `frozen_config.json` (tau, split) |
 | 3 | `notebooks/02_generate_injection_grid.py` | `data/injected/`, 120 corrupted datasets (windows in the 12 test periods) |
 | 4 | `notebooks/04_dose_response_analysis.py` | `reports/t11_*`, dose-response on the test periods (resumable) |
@@ -56,7 +56,7 @@ Steps 2–5 load the full raw archive and need several GB of free RAM; on a smal
 - **Source:** BikeMi official public GBFS feed (`station_status`), polled every 60 s with the required `Client-Identifier` header, published under NLOD 2.0 (attribution). The licence page and licence text are archived in `docs/evidence/`.
 - **Weather:** Open-Meteo historical weather API (CC BY 4.0).
 - **Raw data is not versioned in git** (see `.gitignore`): it is a multi-gigabyte research asset, archived locally with an independent backup.
-- **Injection substrate:** the project's own BikeMi collection: 62 certified daily periods (251.5 h over 36 days, 320 stations), approved by the supervisor on 2026-09-22 — see `reports/t38_*` and thesis §3.6.
+- **Injection substrate:** the project's own BikeMi collection: 62 certified daily periods (251.5 h over 36 days, 320 stations), fixed on 2026-09-22 before any experiment — see `reports/t38_*` and thesis §3.5. All thesis tables and Figure 5.1 are collected in `reports/thesis_tables_and_figures.xlsx`.
 
 ## Status
 - [x] Collection (analysis window frozen at 2026-09-19)

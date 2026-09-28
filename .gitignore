@@ -1,8 +1,8 @@
 # Research data: raw/processed/injected payloads NEVER in git (large, or
 # derived/reproducible from seeds+injectors) - the raw archive gets an automated
 # off-machine backup instead (collector/backup_to_drive.ps1), not git. Acquisition
-# metadata (data/metadata.csv, data/static/) DOES go in git per Russo's 2026-08-11
-# correction: GitHub is for code and metadata, not the raw archive itself.
+# metadata (data/metadata.csv, data/static/) DOES go in git: GitHub is for code
+# and metadata, not the raw archive itself.
 data/raw/*
 data/processed/*
 data/injected/*
@@ -35,3 +35,4 @@ docs/outbox/
 # graphify cache
 graphify-out/
 docs/handoff_archive_*.md
+docs/handoff.md

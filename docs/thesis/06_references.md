@@ -3,11 +3,14 @@
 <!-- STATUS: verified 19 September 2026 against the publisher or arXiv landing
      page of each source. Author lists, titles, volumes, pages and DOIs below
      were copied from those pages, not reconstructed from memory. Every entry
-     here is cited in Chapters 1-4, and every source cited in Chapters 1-4
+     here is cited in Chapters 1-5, and every source cited in Chapters 1-5
      appears here, per the programme's citation rule (guidelines §1).
      Remaining known gap: the SmartFlow preprint's arXiv listing gives a
      December 2025 submission date under a 2601 identifier; it is cited by
      identifier, which is what APA asks for with preprints. -->
+
+BikeMi. (n.d.). *Acquista un abbonamento*. Retrieved July 30, 2026, from
+  https://bikemi.com/compra
 
 Breck, E., Zinkevich, M., Polyzotis, N., Whang, S., & Roy, S. (2019). Data
   validation for machine learning. *Proceedings of Machine Learning and
@@ -41,10 +44,22 @@ Mohammed, S., Budach, L., Feuerpfeil, M., Ihde, N., Nathansen, A., Noack, N. S.,
   on machine learning performance on tabular data. *Information Systems, 132*,
   102549. https://doi.org/10.1016/j.is.2025.102549
 
+Norwegian Digitalisation Agency. (2023). *Norwegian Licence for Open Government
+  Data (NLOD) 2.0*. https://data.norge.no/nlod/en/2.0
+
+OpenAI. (2025). *gpt-oss-120b & gpt-oss-20b model card* (arXiv preprint
+  No. 2508.10925). arXiv. https://doi.org/10.48550/arXiv.2508.10925
+
 Polyzotis, N., Roy, S., Whang, S. E., & Zinkevich, M. (2017). Data management
   challenges in production machine learning. In *Proceedings of the 2017 ACM
   International Conference on Management of Data (SIGMOD '17)* (pp. 1723–1726).
   Association for Computing Machinery. https://doi.org/10.1145/3035918.3054782
+
+Qwen Team. (2026a). *Qwen3.8-27B* [Model card]. Hugging Face. Retrieved
+  September 25, 2026, from https://huggingface.co/Qwen/Qwen3.8-27B
+
+Qwen Team. (2026b, August). *Qwen3.8-Max: A new bar for coding and cowork*
+  [Blog post]. https://qwen.ai/blog?id=qwen3.8
 
 Sambasivan, N., Kapania, S., Highfill, H., Akrong, D., Paritosh, P., & Aroyo, L.
   (2021). "Everyone wants to do the model work, not the data work": Data
@@ -61,3 +76,6 @@ Sreevatsa K, A., Raveendran, A. K., Mani, J. K., Shigli, P. G., Rangadore, R.,
   Darapaneni, N., & Paduri, A. R. (2025). *SmartFlow: Reinforcement learning and
   agentic AI for bike-sharing optimisation* (arXiv preprint No. 2601.00868).
   arXiv. https://arxiv.org/abs/2601.00868
+
+Zippenfenig, P. (2023). *Open-Meteo.com Weather API* [Computer software]. Zenodo.
+  https://doi.org/10.5281/ZENODO.7970649

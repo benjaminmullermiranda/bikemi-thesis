@@ -1,173 +1,171 @@
 # 4. Methodology
 
-This chapter specifies the design frozen on 8 August 2026, per the supervisor's
-instruction to fix the injection design, cost parameterisation, model, and
-threshold before any injected data is examined. Everything here is procedure,
-decided in advance; there are no results. The few numbers marked "current
-interim value" were computed once, before the freeze, by the exact procedure
-being frozen; they will be recomputed once more at collection close, and only
-that final recomputation is reported as a result.
-
+The credibility of the results depends on the order in which the method was fixed. After a pilot on the first continuous stretch of data (25–26 July 2026), the design was frozen on 8 August 2026: taxonomy, injection grid, detectors, safeguard, cost parameters, model specification, threshold-calibration procedure, and hypotheses H1–H3. What was frozen was the *procedure*; its outputs (the split, the threshold τ, and the test AUC) were computed once, on the final substrate, fixed after the census of 19 September (§3.5). A review of the first run on that substrate found implementation errors, which were corrected before everything was re-run; the split, τ, and AUC were unchanged, and Chapter 5 reports only the corrected run (Appendix A.1).
 ## 4.1 Anomaly taxonomy
 
 | # | Class | Dimension | Cause | Detectable? | Injection parameters |
 |---|---|---|---|---|---|
-| 1 | Station dropout | Completeness | Registry/backend churn | Yes: station absent vs. registry | stations, duration |
-| 2 | Frozen counter | Accuracy | Stuck sensor/process | Yes: zero variance over a rolling window | station, duration |
-| 3 | Stale feed | Timeliness | Pipeline delay/caching | Yes, feed-level only: `last_updated` is a single value shared by all 320 stations, so per-station staleness isn't observable | lag Δt, scope |
-| 4 | Count inconsistency | Consistency | Broken docks, config drift | Partially: bikes vs. sum by vehicle type; the capacity-vs-declared half needs `station_information`, only partly collected (§3.5) | magnitude |
-| 5 | Implausible jump | Validity | Transmission/parsing fault | Yes: flow rate exceeding a plausible max | magnitude, rate |
-| 6 | Silent misreporting | Accuracy | Undetected defective bike | No: no field distinguishes it from a genuine available bike; injection-only | offset, share |
+| 1 | Station dropout | Completeness | Registry/backend churn | Yes: station absent vs. the registry of 320 stations | stations, duration |
+| 2 | Frozen counter | Accuracy | Stuck sensor/process | Yes: no change in bikes or docks over a rolling window | duration |
+| 3 | Stale feed | Timeliness | Pipeline delay/caching | Feed-level only: `last_updated` is one value shared by all stations | lag Δt |
+| 4 | Capacity inconsistency | Consistency | Broken docks, configuration drift | Partially: bikes vs. their sum by vehicle type; the capacity check would need `station_information` (§3.4) | magnitude |
+| 5 | Implausible jump | Validity | Transmission/parsing fault | Yes: change between consecutive polls faster than one bike per minute | magnitude, rate |
+| 6 | Silent misreporting | Accuracy | Undetected defective bike | No: nothing in the feed distinguishes it from a genuine available bike | offset k, share |
 
-Each detectable class has a detector in `src/validation.py`, used both to
-certify the substrate as clean (§3.6) and, in §4.4, as the safeguard evaluated
-for recovery.
+*Table 4.1. Anomaly taxonomy.*
+
+The detectors are used twice: to certify the substrate (§3.5) and as the safeguard (§4.4). The frozen-counter detector uses a 60-minute window for certification and a 3-minute window as a safeguard (Appendix A.3).
 
 ## 4.2 Injection design and leakage protocol
 
-Faults are injected at serving time only, never at training time, and into the
-evaluation periods of the multi-day substrate (§3.6) rather than into a single
-continuous block. The grid crosses 6 classes × 4 intensities × 5 seeds = 120
-corrupted datasets:
+Faults are injected at serving time only and scored only in the 12 test
+periods (§4.5); training and validation data are never corrupted. The grid
+crosses 6 classes × 4 intensities × 5 seeds = 120 corrupted datasets:
 
-| Class | Intensity levels |
+| Class | Intensity levels (i0 → i3) |
 |---|---|
-| 1 Dropout | 1 station/5 min · 1/15 min · 3/30 min · 5/1 h |
-| 2 Frozen | 5 min · 15 min · 30 min · 1 h |
+| 1 Dropout | 1 station for 5 min · 1 for 15 min · 3 for 30 min · 5 for 1 h |
+| 2 Frozen | one station for 5 min · 15 min · 30 min · 1 h |
 | 3 Stale | lag 60 s · 300 s · 900 s · 3600 s |
-| 4 Capacity | magnitude 2 · 5 · 10 · 20 |
-| 5 Jump | magnitude 2 · 5 · 10 · 20 (rate 0.05) |
-| 6 Silent | offset k = 1 · 2 · 4 · 8 (share 0.05) |
+| 4 Capacity inconsistency | magnitude 2 · 5 · 10 · 20 bikes |
+| 5 Jump | magnitude 2 · 5 · 10 · 20 bikes, at 5% of rows |
+| 6 Silent | offset k = 1 · 2 · 4 · 8 bikes, at 5% of stations |
 
-Ceilings are sized to the substrate length available when the grid was fixed
-(30 July). They survive the move to a multi-day substrate unchanged: the longest
-injected fault lasts one hour and the shortest retained period is 2.25 hours, so
-every intensity level still fits inside every period. Each injection is placed
-within one period and never spans two, for the same reason no lag does (§4.3). A dry run on that day's shorter, since-superseded clean segment
-confirmed the rescaled grid produced a mechanically sound dose-response shape
-and surfaced two real injection bugs, which were fixed as code corrections,
-not tuned to change the outcome. The grid is not revised based on the final
-substrate's results: that substrate was not yet certified when the grid was
-fixed, and has not been evaluated against it since. Every corrupted dataset
-carries an explicit modification label (NLOD §5–6): synthetic data is never
-presented as observed BikeMi data.
+*Table 4.2. Injection grid.*
 
-Three leakage safeguards are fixed in advance, following Kapoor & Narayanan
-(2023, §2): chronological splits only, never shuffled; the model trained once on
-clean data and frozen; and corruption signals never used as model features.
+Silent misreporting leaves the feed untouched and lowers the *true* number of usable bikes by k at 16 stations, which only the cost layer sees; Appendix A.2 describes how the other classes alter the data.
+
+Classes 1–4 are placed inside one test period drawn by the seed, so no fault
+straddles two periods (the longest lasts one hour, the shortest period 2.25
+hours); Classes 5 and 6 act across the whole test window. A given seed selects
+the same placement at every intensity, so intensities differ only in size. The
+grid was sized on 30 July and not revised after any result on the final
+substrate.  Following Kapoor and Narayanan (2023),
+splits are chronological, the model is trained once on clean data and frozen,
+and corruption signals are never used as features.
 
 ## 4.3 Decision pipeline
 
 Pipeline: raw feed → validation/feature layer → forecast → decision rule →
 intervention list → cost.
 
-**Critical state:** ≤2 bikes or ≤2 free docks, 2 hours ahead. A type-level
-definition and thresholds of 1/3 are scoped as robustness variants, not
-substitutes.
+**Critical state:** ≤ 2 bikes or ≤ 2 free docks; the target is whether a
+station will be critical two hours ahead.
 
-**Forecast:** a regularised logistic regression predicting P(critical, 2h ahead)
-from lagged availability, hour, weekday, and basic weather. Kept deliberately
-simple: the thesis studies how data quality affects the pipeline, not how well
-it forecasts. A gradient-boosted model is a robustness check only, not the
-primary forecaster. Lags spanning a real collection gap are invalidated, not
-silently treated as short, and the same rule makes the boundary between two
-daily periods impassable: no lag and no forecast horizon reaches from one day's
-period into the next (§3.6).
+**Forecast:** an L2-regularised logistic regression on twelve features entered
+linearly: bikes and free docks lagged 1, 2, 5, and 15 minutes, hour of day
+(UTC), weekday, temperature, and precipitation. It is deliberately simple, since the thesis studies data quality, not
+forecasting. Lags that would span a gap are invalidated, so no lag or horizon
+crosses from one period into the next.
 
-**Decision rule:** dispatch iff P̂ ≥ τ. τ is calibrated once, on validation data
-only, minimising total cost (§4.5) under the mid cost profile, then frozen, so
-any change in decisions under corrupted data is attributable to data quality
-alone. A reactive policy (act only once critical state is observed) is the
-comparator.
+**Decision rule:** dispatch if and only if P̂ ≥ τ. τ is the value on a grid
+from 0.05 to 0.95 (step 0.05) that minimises total cost (§4.5) on validation
+data under the mid cost profile, then frozen. A row for which the corrupted
+data yields no forecast, such as a station removed by a dropout, is scored as
+"no dispatch": a station the pipeline cannot see is one it does not act on.
 
 ## 4.4 Safeguard and recovery layer
 
-Where a detector flags a row (classes 1, 2, 4, 5), the safeguard replaces it with
-the last non-flagged observation for that station (carry-forward), then
-re-scores the decision, testing SO2 (§1.2). Class 1 has nothing to carry
-forward (rows are removed, not corrupted in place); Class 3's detector is
-feed-level, a different shape than the injected files; Class 6 has no detector
-by design, so its recovery is definitionally zero, reported as the unrecoverable
-floor, not a missing measurement.
+The safeguard, which tests SO2, replaces a flagged row's bikes and docks with
+the station's last unflagged observation in the same period (carry-forward) and
+re-scores the decision. It can be evaluated only where a detector can act on
+the injected data. Class 1 has nothing to carry forward, since its rows are
+removed. Class 3's detector reads `last_updated` and the payload hash, which
+the injected station-level data does not carry. Class 4's detector cannot fire:
+the processed substrate keeps only each station's total bike count, so the
+type-sum check compares the total with itself, and its zero recovery is not
+evidence either way. Class 6 has no detector by design and is reported as the
+unrecoverable floor. The safeguard is therefore tested on Classes 2 and 5.
 
-## 4.5 Model, cost model, and threshold (frozen)
+## 4.5 Model, cost model, and threshold
 
-The model (`src/features.py`, `src/model.py`) is trained with the frozen
-chronological split (train ≤60th percentile, validation (60–80th], test
-(80th–end], never shuffled), saved once to `models/frozen_config.json` so it
-cannot silently redraw later against a larger collection.
+The model is trained on a chronological split at the 60th and 80th percentiles
+of forecastable rows, each cut moved to the end of its period so that no
+training label horizon reaches into validation. Two short periods have no forecastable row, leaving 60: 33 for training (1,240,603 rows,
+to 14 August), 15 for validation (14 August to 7 September), and 12 for testing
+(7 to 17 September; 48.2 hours; 360,541 labelled rows).
 
-Moving to a multi-day substrate forces one clarification of this procedure,
-made before any injected data from the new substrate was examined and reported
-here rather than applied quietly. The split percentiles are now cut on whole
-periods instead of on rows, so a period belongs entirely to training,
-validation, or testing. A row-level cut would place the last training rows'
-two-hour label horizon inside the validation window, which is precisely the
-leakage the protocol in §4.2 exists to prevent. Injection and evaluation then
-run on the test periods only; the training and validation periods are never
-corrupted.
-
-Cost has two components: **C_penalty** (demand side) = critical station-hours ×
-expected failed pickups × (1−σ) × revenue per ride; **C_transit** (supply side) =
-preventive dispatches × cost per stop. All four parameters are swept low/mid/high
-(81 combinations), so results are reported as ranges, not a single point
-estimate:
+The cost of a policy over the test window has two components.
+**C_penalty** = unserved critical station-hours × pickup rate × (1 − σ) ×
+revenue per ride, where a critical station-hour is unserved when the policy did
+not dispatch two hours earlier; a dispatch is assumed to prevent the shortfall
+it anticipates. The penalty is an opportunity-cost proxy for lost rides, not a
+recorded expense. **C_transit** = dispatch episodes × cost per dispatch, where
+an episode is one visit: a contiguous run of dispatch decisions at one station,
+never continued across a gap.
 
 | Parameter | Low | Mid | High | Source |
 |---|---|---|---|---|
-| Revenue/ride (EUR) | 0.00 | 0.50 | 1.50 | BikeMi's published tariffs |
-| Pickup rate (per station-hour) | 1.0 | 1.94 | 3.0 | This project's own collected data |
-| Cost/dispatch (EUR) | 10.0 | 15.0 | 25.0 | Documented estimate: no published figure found; based on typical Milan van-and-driver stop rates |
-| σ (substitution share) | 0.2 | 0.5 | 0.8 | Illustrative sweep, not derived from ridership data |
+| Revenue per ride (EUR) | 0.00 | 0.50 | 1.50 | BikeMi's published tariffs (BikeMi, n.d.) |
+| Pickup rate (per station-hour) | 1.0 | 1.94 | 3.0 | This project's own data |
+| Cost per dispatch (EUR) | 10.0 | 15.0 | 25.0 | Documented estimate: no published figure found |
+| σ (substitution share) | 0.2 | 0.5 | 0.8 | Illustrative range, not derived from ridership data |
 
-`c_dispatch` is the one unsourced parameter; the mitigation is sweeping it
-rather than fixing a point value.
+*Table 4.3. Cost parameters.*
 
-Two numbers here (the split boundaries and τ) were computed once, on 30 July,
-before the freeze, on a partial collection. They are current interim values,
-produced by the frozen procedure. Collection has since closed (§3.4) and the
-substrate has moved from a single segment to the multi-day design of §3.6; the
-split and τ will be recomputed exactly once more, on the final multi-day
-substrate, by the exact procedure above, and that single recomputation, not a
-comparison of candidates, becomes the final number.
+Appendix A.4 explains how each value was set. Under the mid profile an unserved critical station-hour costs
+1.94 × 0.5 × €0.50 = €0.485, so one €15 dispatch equals about 31 of them. All
+results use the mid profile, under which τ was calibrated; §5.7 discusses the
+other values rather than re-estimating, since another profile would also call
+for another τ.
 
-## 4.6 Agent comparison (descoped)
+The procedure gives τ = 0.85 and a test AUC of 0.58, against a base rate of
+19.1% critical rows (§3.5). Both are reported as produced, not tuned: the model
+discriminates weakly, and the high threshold makes the policy conservative.
 
-SO3 was pre-registered as a bounded extension: a single tool-grounded agent
-evaluated quality-blind (raw values only) vs. quality-aware (values plus
-safeguard flags), across eight fixed operator questions × three conditions
-(clean / corrupted / corrupted-and-flagged), scored on groundedness, warning
-appropriateness, abstention correctness, and recommendation consistency
-(protocol adapted from AbstentionBench and AgentAbstain, §2). Per the scope
-triage (§1.2), it was cut first, and is not run or reported in this thesis;
-the full protocol remains specified in the project repository as future work.
+## 4.6 Assistant experiment (SO3)
+
+SO3 uses a tool-grounded language-model assistant: one call per question, with
+the pipeline's output precomputed and passed in as a tool result. The protocol was committed before the first model call; later amendments changed only the provider (Appendix A.5).
+
+Eight scenarios were drawn deterministically from one Class 5 dataset
+(magnitude 10, seed 0), each at a different station: four in which the
+corruption flips the frozen model's decision and four in which it does not.
+Each shows the lagged and current readings, the predicted probability, τ, the
+recommendation, and the €15 dispatch cost, under three conditions: *clean*,
+*corrupted* with every quality flag set to "ok" (a failed detector), and
+*corrupted-flagged* with the detector's real flags. Two configurations cross
+these: *blind* (numbers only, so its two corrupted prompts are identical) and
+*aware* (numbers plus a quality column and a description of the jump rule).
+The assistant returns a decision (dispatch, no dispatch, or abstain), a warning
+flag, and a rationale.
+
+Each answer is scored automatically and binarily for *groundedness* (every
+number in the rationale appears in the tool output), *warning appropriateness*
+(warns if and only if the data is corrupted), *abstention correctness*
+(abstains if and only if the data is corrupted and the decision flipped), and
+*consistency* (same decision as on the clean version). The protocol also
+reports *correct action* (in Chapter 5, *agreement with the clean-model action*): the decision equals the frozen model's clean
+decision. Abstaining never counts as correct there, so repeating the
+recommendation scores exactly 50% on corrupted data. Stability is the share of
+the 48 prompt cells in which three repetitions agree on decision and warning.
+gpt-oss-20b and gpt-oss-120b (OpenAI, 2025) and Qwen3.8-27B (Qwen Team, 2026a,
+2026b) were run through the Groq API at temperature 0, three repetitions each:
+8 × 3 × 2 × 3 × 3 = 432 answers, none missing.
 
 ## 4.7 Hypotheses and analysis plan
 
-Fixed in advance, per the supervisor's instruction, so no test is chosen after
-seeing results. H1–H2 use Holm-corrected α = 0.05; given limited power at this
-scale, effect sizes with confidence intervals are the primary evidence
-throughout.
+H1–H3 were fixed on 8 August; after the pilot, a day factor and Milan local
+time were added to H1, before it was run on the final substrate. H4 was fixed in its protocol on 24 September, after the H1–H3 run and before any assistant call. No test was chosen after seeing results on
+the final substrate. Effect sizes with confidence intervals are the primary
+evidence; the tests are secondary.
 
-- **H1 (Occurrence).** Anomalies occur at non-negligible, uneven rates across
-  stations, hours, and days. *Test:* negative-binomial GLM (rare, overdispersed
-  counts rule out χ²), likelihood-ratio test for unevenness. The multi-day
-  substrate adds day as a grouping factor, which a single-day substrate could
-  not have supported.
-- **H2 (Non-linear, class-dependent propagation).** Decision-flip rate and Δcost
-  grow non-linearly with intensity and differ by class. *Test:* class ×
-  intensity interaction model on Δcost; permutation test if diagnostics fail at
-  n=5.
-- **H3 (Bounded recoverability, classes 1–5).** The safeguard recovers a
-  substantial share of Δcost. *Test:* bootstrap CI on paired pre/post Δcost
-  (primary; at n=5, Wilcoxon's minimum p of 0.0625 cannot reach α=0.05 alone).
-  Class 6 excluded by construction, reported as the unrecoverable floor.
+- **H1 (Occurrence; SO1).** Anomalies occur at non-negligible, uneven rates
+  across stations, hours, and days. *Test:* negative-binomial GLM on
+  detected-jump counts over the 62 periods, in local time, with a
+  likelihood-ratio test per factor.
+- **H2 (Non-linear, class-dependent propagation; primary objective).**
+  Decision-flip rate and Δcost grow non-linearly with intensity and differ by
+  class. *Test:* class × intensity interaction on Δcost; a Freedman–Lane
+  permutation test if diagnostics fail.
+- **H3 (Bounded recoverability; SO2).** The safeguard recovers a substantial
+  share of Δcost for the classes it can detect. *Test:* percentile bootstrap CI
+  on paired pre/post Δcost per class and intensity (n = 5 seeds); Wilcoxon's
+  signed-rank test as a secondary check, pooled over intensities (n = 20)
+  because with five pairs its smallest possible p-value is 0.0625.
+- **H4 (Assistant quality-awareness; SO3).** An assistant given quality flags
+  warns and abstains more appropriately than one without them. *Analysis:*
+  descriptive rates; with eight scenarios, no inferential test.
 
-H4 (agent quality-awareness) was pre-registered alongside SO3 (§4.6) and is
-descoped for the same reason; it is not tested in this thesis.
-
-This plan, with the frozen injection design, pipeline, and cost model above, is
-the full pre-registered specification the results chapter is evaluated against.
-Collection has closed (§3.4); per the supervisor's instruction of 14 September
-2026, the census in §3.6 was sent for review before the injection grid was run,
-and the experiments proceed only once that basis is confirmed sufficient.
+The Holm correction (α = 0.05) is applied jointly to the three H1 tests and the
+H2 interaction test.

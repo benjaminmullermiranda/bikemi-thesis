@@ -2,23 +2,21 @@
 
 ## 1.1 Motivation
 
-Bike-sharing operators rebalance bicycles between stations to keep the system
-usable: a station with no bikes cannot serve a pickup, and one with no free docks
-cannot accept a return. These decisions are triggered by a live data feed, not by
-directly observing the stations. When that feed is degraded (a station drops
-out, a sensor freezes, a counter reports an implausible value), the decision
-pipeline inherits the error, and the operator pays for a mistake in the data, not
-in the rule it followed.
+Bike-sharing operators move bicycles between stations to keep the system
+usable: a station with no bikes cannot serve a pickup, and a station with no
+free docks cannot accept a return. These rebalancing decisions are triggered by
+a live data feed, not by watching the stations directly. When the feed degrades
+(a station drops out, a sensor freezes, a counter reports an implausible value),
+the decision pipeline inherits the error, and the operator pays for a mistake
+in the data, not in the rule it followed.
 
 Milan's BikeMi system publishes such a feed continuously, in the GBFS format.
-Because it is live rather than a static, pre-cleaned dataset, it shows quality
-issues a benchmark dataset would not: stations disappearing, frozen counters,
-inconsistent capacity, bicycles reported available when they are not. These are
-exactly the conditions where a rebalancing decision has the most to lose.
-
-This thesis does not ask whether a system can recommend where to send a van, a
-well-covered question (Chapter 2). It asks a narrower one: what happens to the
-decision pipeline when its input data is not clean, and how much of the damage a
+Because it is live rather than a pre-cleaned dataset, it shows problems a
+benchmark would hide: stations vanishing, counters freezing, inconsistent
+capacity figures, bikes reported as available when they are not. This thesis
+sets aside the well-covered question of whether a system can recommend where
+to send a van (Chapter 2) and asks a narrower one: what happens to the
+decision pipeline when its input data is dirty, and how much of that damage a
 simple safeguard can recover without touching the model itself.
 
 ## 1.2 Research question and objectives
@@ -26,41 +24,39 @@ simple safeguard can recover without touching the model itself.
 **Research question.** How does data-quality degradation in a live bike-sharing
 feed propagate through an operational decision pipeline (raw data → forecast →
 dispatch decision → cost), and how much of that harm can be recovered without
-improving the forecasting model itself?
+improving the forecasting model itself, and, as a secondary question, whether giving a language-model assistant data-quality signals changes its warnings and abstentions on a fixed set of scenarios?
 
 Data quality, not predictive accuracy, is the independent variable. The model is
-kept simple and frozen before any corrupted data is examined; only the input data
-varies, and corruption is applied at serving time only. This isolates the effect:
-if the model changed alongside the corruption, no result could be attributed to
-data quality alone.
+kept simple and frozen before any corrupted data is scored, and corruption is
+applied at serving time only; if the model changed alongside the corruption,
+no result could be attributed to data quality alone. The price of this choice
+is that every result holds for this particular frozen model and threshold, a
+limit Chapter 5 states wherever it matters.
 
-**Primary objective.** Quantify each link of the raw-data → forecast → decision →
-cost chain, per anomaly class and intensity, and identify where the loss
+**Primary objective.** Quantify each link of the raw data → forecast → decision
+→ cost chain, per anomaly class and intensity, and identify where the loss
 concentrates.
 
 **Secondary objectives.**
-- **SO1**: Characterise the anomalies actually observed in the live feed over
-  the collection window.
-- **SO2**: Measure how much of the degradation a rule-based safeguard layer
-  recovers, without retraining the model.
-- **SO3**: As a bounded, final extension, test whether an AI agent given
-  explicit data-quality signals behaves differently (warns, or abstains) than one
-  without them, on a fixed, objectively scored scenario set.
 
-**Scope triage**, fixed in advance: if time runs short, SO3 is cut first. SO1 and
-the core propagation analysis are never cut. They are the thesis's central
-contribution.
+- **SO1:** Characterise the anomalies actually observed in the live feed.
+- **SO2:** Measure how much of the degradation a rule-based safeguard recovers,
+  without retraining the model.
+- **SO3:** As a bounded, final extension, test whether a tool-grounded
+  language-model assistant given explicit data-quality signals warns or
+  abstains differently than one without them, on a fixed, objectively scored
+  scenario set.
 
-SO3 is descoped for this submission: the university's length requirement for a
-quantitative Bachelor's thesis leaves limited room beyond the core propagation
-analysis, and SO3 was pre-registered as the first item to cut under exactly
-this scenario. Its full protocol (§4.6) remains specified as future work.
+Each objective is tested by one hypothesis fixed in advance (§4.7): H1 answers
+SO1, H2 the primary objective, H3 SO2, and H4 SO3. The "agentic AI" of the
+title refers to SO3 in a deliberately limited sense, kept as a bounded final step with predefined scenarios and objective scoring so that it complements the core analysis rather than competing with it: a language model that reads the pipeline's
+output through a tool interface and returns a decision, a warning, and a
+rationale, without planning or acting on the system (§4.6). SO3 is reported as a short, descriptive extension.
 
 ## 1.3 Structure
 
-Chapter 2 positions the thesis against the literature and states the gap it
-fills. Chapter 3 describes the BikeMi case study and the data collected.
-Chapter 4 specifies the frozen methodology (taxonomy, injection design, decision
-pipeline, cost model, and analysis plan), fixed before any injected data was
-examined. Chapter 5 reports the results of running that frozen plan against the
-final dataset, discusses them, and concludes.
+Chapter 2 places the thesis in the literature and names the gap it fills.
+Chapter 3 describes the BikeMi case study, the data collection, and the
+certified substrate used in the experiments. Chapter 4 sets out the
+methodology and the order in which each part was fixed. Chapter 5 reports the
+results, discusses them, states the limitations, and concludes.

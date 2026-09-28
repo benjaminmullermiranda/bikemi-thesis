@@ -1,5 +1,5 @@
 # Data Quality and Agentic AI in Operational Decision Support: A Bike-Sharing Case Study
-Benjamin Antonio Muller Miranda · B.Sc. Business with Data Science · Supervisor: Prof. Ciro Russo
+Benjamin Antonio Muller Miranda · B.Sc. Economics with Data Science (Class L-33) · Supervisor: Prof. Ciro Russo
 
 ## 1. Research question and objectives
 
