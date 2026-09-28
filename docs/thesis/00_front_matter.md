@@ -1,8 +1,3 @@
-<!-- Student ID taken from the version of this document already sent to the
-     supervisor on 4 September 2026; degree programme and academic year from
-     the signed thesis assignment request (RichiestaTesi). Nothing guessed.
-     Programme name confirmed by the student on 26 September 2026. -->
-
 # Data Quality and Agentic AI in Operational Decision Support: A Bike-Sharing Case Study
 
 *Data Quality e IA Agentica nel supporto decisionale operativo: un caso di studio sul bike-sharing*
@@ -16,11 +11,6 @@
 ---
 
 ## Abstract
-
-<!-- AI use statement drafted against the actual text of guideline point 7
-     (allowed uses a-d; acknowledgement required at the bottom of the abstract
-     page). It is the student's own declaration: read it, correct anything that
-     does not match what you actually did, and only then submit. -->
 
 Bike-sharing operators trigger rebalancing from live data feeds, and those
 feeds degrade: stations drop out, counters freeze, values jump. This thesis

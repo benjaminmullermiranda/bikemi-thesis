@@ -12,3 +12,5 @@ scipy==1.17.1            # H2 permutation test, added 2026-08-08
 # pinned 2026-08-08: sklearn/pandas behavior has changed across versions before
 # (LogisticRegression solver defaults, .rolling() semantics) - the frozen model
 # and detectors should reproduce identically on re-run, not drift with a new install.
+openpyxl==3.1.5          # thesis tables workbook (reports/thesis_tables_and_figures.xlsx)
+python-docx==1.2.0       # Word version of the thesis (docs/thesis/build_docx.py)

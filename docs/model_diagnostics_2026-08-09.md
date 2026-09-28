@@ -1,3 +1,5 @@
+> **Historical record (pilot-model diagnostic of 9 August 2026).** Kept for provenance; it predates the final substrate and results. The final design and results are in the thesis (`docs/thesis/thesis_full.md`).
+
 # Model diagnostics: why classes 1/2/4 show zero decision-level impact
 
 Diagnostic only — nothing frozen (model, tau, injection design, cost params) was changed

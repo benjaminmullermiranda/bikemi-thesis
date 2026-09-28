@@ -1,3 +1,5 @@
+> **Historical record (research outline of July 2026).** Kept for provenance; it predates the final substrate and results. The final design and results are in the thesis (`docs/thesis/thesis_full.md`).
+
 # Data Quality and Agentic AI in Operational Decision Support: A Bike-Sharing Case Study
 Benjamin Antonio Muller Miranda · B.Sc. Economics with Data Science (Class L-33) · Supervisor: Prof. Ciro Russo
 

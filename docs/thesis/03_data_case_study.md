@@ -31,11 +31,7 @@ frozen in the repository.
 ## 3.3 Acquisition and coverage
 
 Because a live feed's history cannot be recovered after the fact, the collector was the first component built. Every
-60 seconds it fetches the feed, archives the raw payload, and logs acquisition
-metadata (timestamp, HTTP status, latency, payload hash, the feed's own
-`last_updated` field, and station count), whether or not the fetch succeeded.
-Logging `last_updated` next to the request time separates staleness at the
-publisher from a collection failure on this end. A failed fetch is retried up
+60 seconds it fetches the feed, archives the raw payload, and logs acquisition metadata (timestamp, HTTP status, latency, payload size and hash, and station count), whether or not the fetch succeeded. The feed's own `last_updated` field is kept in each archived payload; comparing it with the request time separates staleness at the publisher from a collection failure on this end. A failed fetch is retried up
 to four times within the cycle (waits of 2, 4, 8, and 16 seconds), and a fetch
 that fails all five attempts is logged as an error.
 

@@ -1,8 +1,3 @@
-<!-- Student ID taken from the version of this document already sent to the
-     supervisor on 4 September 2026; degree programme and academic year from
-     the signed thesis assignment request (RichiestaTesi). Nothing guessed.
-     Programme name confirmed by the student on 26 September 2026. -->
-
 # Data Quality and Agentic AI in Operational Decision Support: A Bike-Sharing Case Study
 
 *Data Quality e IA Agentica nel supporto decisionale operativo: un caso di studio sul bike-sharing*
@@ -16,11 +11,6 @@
 ---
 
 ## Abstract
-
-<!-- AI use statement drafted against the actual text of guideline point 7
-     (allowed uses a-d; acknowledgement required at the bottom of the abstract
-     page). It is the student's own declaration: read it, correct anything that
-     does not match what you actually did, and only then submit. -->
 
 Bike-sharing operators trigger rebalancing from live data feeds, and those
 feeds degrade: stations drop out, counters freeze, values jump. This thesis
@@ -222,11 +212,7 @@ frozen in the repository.
 ## 3.3 Acquisition and coverage
 
 Because a live feed's history cannot be recovered after the fact, the collector was the first component built. Every
-60 seconds it fetches the feed, archives the raw payload, and logs acquisition
-metadata (timestamp, HTTP status, latency, payload hash, the feed's own
-`last_updated` field, and station count), whether or not the fetch succeeded.
-Logging `last_updated` next to the request time separates staleness at the
-publisher from a collection failure on this end. A failed fetch is retried up
+60 seconds it fetches the feed, archives the raw payload, and logs acquisition metadata (timestamp, HTTP status, latency, payload size and hash, and station count), whether or not the fetch succeeded. The feed's own `last_updated` field is kept in each archived payload; comparing it with the request time separates staleness at the publisher from a collection failure on this end. A failed fetch is retried up
 to four times within the cycle (waits of 2, 4, 8, and 16 seconds), and a fetch
 that fails all five attempts is logged as an error.
 
@@ -712,15 +698,6 @@ faults, and extend the assistant test to more classes and scenarios.
 ---
 
 # References
-
-<!-- STATUS: verified 19 September 2026 against the publisher or arXiv landing
-     page of each source. Author lists, titles, volumes, pages and DOIs below
-     were copied from those pages, not reconstructed from memory. Every entry
-     here is cited in Chapters 1-5, and every source cited in Chapters 1-5
-     appears here, per the programme's citation rule (guidelines §1).
-     Remaining known gap: the SmartFlow preprint's arXiv listing gives a
-     December 2025 submission date under a 2601 identifier; it is cited by
-     identifier, which is what APA asks for with preprints. -->
 
 BikeMi. (n.d.). *Acquista un abbonamento*. Retrieved July 30, 2026, from
   https://bikemi.com/compra

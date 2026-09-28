@@ -1,3 +1,5 @@
+HISTORICAL SNAPSHOT (8 August 2026). Final collection figures: thesis section 3.3.
+
 Period        : 2026-07-24 09:46:06 -> 2026-08-08 15:10:01 UTC  (365.4 h)
 COVERAGE      : 62.0%   (13374 logged / ~21565 expected)
 Success rate  : 59.1%   (7899 HTTP 200 of 13374 logged)

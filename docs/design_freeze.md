@@ -1,3 +1,5 @@
+> **Historical record (design freeze of 8 August 2026).** Kept for provenance; it predates the final substrate and results. The final design and results are in the thesis (`docs/thesis/thesis_full.md`).
+
 # Design Freeze
 
 Frozen 2026-08-08, per Prof. Russo's approval of the outline ("Treat it as final and freeze

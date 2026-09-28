@@ -1,14 +1,5 @@
 # References
 
-<!-- STATUS: verified 19 September 2026 against the publisher or arXiv landing
-     page of each source. Author lists, titles, volumes, pages and DOIs below
-     were copied from those pages, not reconstructed from memory. Every entry
-     here is cited in Chapters 1-5, and every source cited in Chapters 1-5
-     appears here, per the programme's citation rule (guidelines §1).
-     Remaining known gap: the SmartFlow preprint's arXiv listing gives a
-     December 2025 submission date under a 2601 identifier; it is cited by
-     identifier, which is what APA asks for with preprints. -->
-
 BikeMi. (n.d.). *Acquista un abbonamento*. Retrieved July 30, 2026, from
   https://bikemi.com/compra
 
